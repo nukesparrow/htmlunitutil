@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-// TODO : Import copyrights from HtmlUnit serializer
+// TODO : Import copyrights from HtmlUnit's DataUrlXmlSerializer
 
 package com.bb.htmlunit;
 
