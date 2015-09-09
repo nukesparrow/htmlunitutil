@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>HtmlUnit Log</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        
+        <script src="http://code.jquery.com/jquery-1.8.3.min.js"></script>
+        <script type="text/javascript">
+/*!
+ * JQuery Spliter Plugin
+ * Copyright (C) 2010-2013 Jakub Jankiewicz <http://jcubic.pl>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+(function($, undefined) {
+    var count = 0;
+    var splitter_id = null;
+    var splitters = [];
+    var current_splitter = null;
+    $.fn.split = function(options) {
+        var data = this.data('splitter');
+        if (data) {
+            return data;
+        }
+        var panel_1;
+        var panel_2;
+        var settings = $.extend({
+            limit: 100,
+            orientation: 'horizontal',
+            position: '50%',
+            invisible: false,
+            onDragStart: $.noop,
+            onDragEnd: $.noop,
+            onDrag: $.noop
+        }, options || {});
+        this.settings = settings;
+        var cls;
+        var children = this.children();
+        if (settings.orientation == 'vertical') {
+            panel_1 = children.first().addClass('left_panel');
+            panel_2 = panel_1.next().addClass('right_panel');
+            cls = 'vsplitter';
+        } else if (settings.orientation == 'horizontal') {
+            panel_1 = children.first().addClass('top_panel')
+            panel_2 = panel_1.next().addClass('bottom_panel');
+            cls = 'hsplitter';
+        }
+        if (settings.invisible) {
+            cls += ' splitter-invisible';
+        }
+        var width = this.width();
+        var height = this.height();
+        var id = count++;
+        this.addClass('splitter_panel');
+        var splitter = $('<div/>').addClass(cls).mouseenter(function() {
+            splitter_id = id;
+        }).mouseleave(function() {
+            splitter_id = null;
+        }).insertAfter(panel_1);
+        var position;
+
+        function get_position(position) {
+            if (typeof position === 'number') {
+                return position;
+            } else if (typeof position === 'string') {
+                var match = position.match(/^([0-9]+)(px|%)$/);
+                if (match) {
+                    if (match[2] == 'px') {
+                        return +match[1];
+                    } else {
+                        if (settings.orientation == 'vertical') {
+                            return (width * +match[1]) / 100;
+                        } else if (settings.orientation == 'horizontal') {
+                            return (height * +match[1]) / 100;
+                        }
+                    }
+                } else {
+                    //throw position + ' is invalid value';
+                }
+            } else {
+                //throw 'position have invalid type';
+            }
+        }
+
+        var self = $.extend(this, {
+            refresh: function() {
+                var new_width = this.width();
+                var new_height = this.height();
+                if (width != new_width || height != new_height) {
+                    width = this.width();
+                    height = this.height();
+                    self.position(position);
+                }
+            },
+            position: (function() {
+                if (settings.orientation == 'vertical') {
+                    return function(n, silent) {
+                        if (n === undefined) {
+                            return position;
+                        } else {
+                            position = get_position(n);
+                            var sw = splitter.width();
+                            var sw2 = sw/2;
+                            if (settings.invisible) {
+                                var pw = panel_1.width(position).outerWidth();
+                                panel_2.width(self.width()-pw);
+                                splitter.css('left', pw-sw2);
+                            } else {
+                                var pw = panel_1.width(position-sw2).outerWidth();
+                                panel_2.width(self.width()-pw-sw);
+                                splitter.css('left', pw);
+                            }
+                        }
+                        if (!silent) {
+                            self.find('.splitter_panel').trigger('splitter.resize');
+                        }
+                        return self;
+                    };
+                } else if (settings.orientation == 'horizontal') {
+                    return function(n, silent) {
+                        if (n === undefined) {
+                            return position;
+                        } else {
+                            position = get_position(n);
+                            var sw = splitter.height();
+                            var sw2 = sw/2;
+                            if (settings.invisible) {
+                                var pw = panel_1.height(position).outerHeight();
+                                panel_2.height(self.height()-pw);
+                                splitter.css('top', pw-sw2);
+                            } else {
+                                var pw = panel_1.height(position-sw2).outerHeight();
+                                panel_2.height(self.height()-pw-sw);
+                                splitter.css('top', pw);
+                            }
+                        }
+                        if (!silent) {
+                            self.find('.splitter_panel').trigger('splitter.resize');
+                        }
+                        return self;
+                    };
+                } else {
+                    return $.noop;
+                }
+            })(),
+            orientation: settings.orientation,
+            limit: settings.limit,
+            isActive: function() {
+                return splitter_id === id;
+            },
+            destroy: function() {
+                self.removeClass('splitter_panel');
+                splitter.unbind('mouseenter');
+                splitter.unbind('mouseleave');
+                if (settings.orientation == 'vertical') {
+                    panel_1.removeClass('left_panel');
+                    panel_2.removeClass('right_panel');
+                } else if (settings.orientation == 'horizontal') {
+                    panel_1.removeClass('top_panel');
+                    panel_2.removeClass('bottom_panel');
+                }
+                self.unbind('splitter.resize');
+                self.find('.splitter_panel').trigger('splitter.resize');
+                splitters[id] = null;
+                splitter.remove();
+                var not_null = false;
+                for (var i=splitters.length; i--;) {
+                    if (splitters[i] !== null) {
+                        not_null = true;
+                        break;
+                    }
+                }
+                //remove document events when no splitters
+                if (!not_null) {
+                    $(document.documentElement).unbind('.splitter');
+                    $(window).unbind('resize.splitter');
+                    self.data('splitter', null);
+                    splitters = [];
+                    count = 0;
+                }
+            }
+        });
+        self.bind('splitter.resize', function(e) {
+            var pos = self.position();
+            if (self.orientation == 'vertical' &&
+                pos > self.width()) {
+                pos = self.width() - self.limit-1;
+            } else if (self.orientation == 'horizontal' &&
+                       pos > self.height()) {
+                pos = self.height() - self.limit-1;
+            }
+            if (pos < self.limit) {
+                pos = self.limit + 1;
+            }
+            self.position(pos, true);
+        });
+        //inital position of splitter
+        var pos;
+        if (settings.orientation == 'vertical') {
+            if (pos > width-settings.limit) {
+                pos = width-settings.limit;
+            } else {
+                pos = get_position(settings.position);
+            }
+        } else if (settings.orientation == 'horizontal') {
+            //position = height/2;
+            if (pos > height-settings.limit) {
+                pos = height-settings.limit;
+            } else {
+                pos = get_position(settings.position);
+            }
+        }
+        if (pos < settings.limit) {
+            pos = settings.limit;
+        }
+        self.position(pos, true);
+        if (splitters.length == 0) { // first time bind events to document
+            $(window).bind('resize.splitter', function() {
+                $.each(splitters, function(i, splitter) {
+                    splitter.refresh();
+                });
+            });
+            $(document.documentElement).bind('mousedown.splitter', function(e) {
+                if (splitter_id !== null && e.which == 1) {
+                    current_splitter = splitters[splitter_id];
+                    $('<div class="splitterMask"></div>').css('cursor', splitter.css('cursor')).insertAfter(current_splitter);
+                    current_splitter.settings.onDragStart(e);
+                    return false;
+                }
+            }).bind('mouseup.splitter', function(e) {
+                if (current_splitter) {
+                    $('.splitterMask').remove();
+                    current_splitter.settings.onDragEnd(e);
+                    current_splitter = null;
+                }
+            }).bind('mousemove.splitter', function(e) {
+                if (current_splitter !== null) {
+                    var limit = current_splitter.limit;
+                    var offset = current_splitter.offset();
+                    if (current_splitter.orientation == 'vertical') {
+                        var x = e.pageX - offset.left;
+                        if (x <= current_splitter.limit) {
+                            x = current_splitter.limit + 1;
+                        } else if (x >= current_splitter.width() - limit) {
+                            x = current_splitter.width() - limit - 1;
+                        }
+                        if (x > current_splitter.limit &&
+                            x < current_splitter.width()-limit) {
+                            current_splitter.position(x, true);
+                            current_splitter.find('.splitter_panel').
+                                trigger('splitter.resize');
+                            e.preventDefault();
+                        }
+                    } else if (current_splitter.orientation == 'horizontal') {
+                        var y = e.pageY-offset.top;
+                        if (y <= current_splitter.limit) {
+                            y = current_splitter.limit + 1;
+                        } else if (y >= current_splitter.height() - limit) {
+                            y = current_splitter.height() - limit - 1;
+                        }
+                        if (y > current_splitter.limit &&
+                            y < current_splitter.height()-limit) {
+                            current_splitter.position(y, true);
+                            current_splitter.find('.splitter_panel').
+                                trigger('splitter.resize');
+                            e.preventDefault();
+                        }
+                    }
+                    current_splitter.settings.onDrag(e);
+                }
+            });
+        }
+        splitters.push(self);
+        self.data('splitter', self);
+        return self;
+    };
+})(jQuery);
+        </script>
+        <style type="text/css">
+/*!
+ * StyleSheet for JQuery splitter Plugin
+ * Copyright (C) 2010 Jakub Jankiewicz <http://jcubic.pl>
+ *
+ * Same license as plugin
+ */
+.splitter_panel {
+  position: relative;
+}
+.splitter_panel .vsplitter {
+    background-color: grey;
+    cursor: col-resize;
+    z-index:900;
+    width: 4px;
+}
+
+.splitter_panel .hsplitter {
+    background-color: #5F5F5F;
+    cursor: row-resize;
+    z-index: 800;
+    height: 4px;
+}
+.splitter_panel .vsplitter.splitter-invisible,
+.splitter_panel .hsplitter.splitter-invisible {
+    background: none;
+}
+.splitter_panel .vsplitter, .splitter_panel .left_panel, .splitter_panel .right_panel,
+.splitter_panel .hsplitter, .splitter_panel .top_panel, .splitter_panel .bottom_panel {
+    position: absolute;
+    overflow: auto;
+}
+.splitter_panel .vsplitter, .splitter_panel .left_panel, .splitter_panel .right_panel {
+  height: 100%;
+}
+.splitter_panel .hsplitter, .splitter_panel .top_panel, .splitter_panel .bottom_panel {
+  width: 100%;
+}
+.splitter_panel .top_panel, .splitter_panel .left_panel, .splitter_panel .vsplitter {
+   top: 0;
+}
+.splitter_panel .top_panel, .splitter_panel .bottom_panel, .splitter_panel .left_panel, .splitter_panel .hsplitter {
+   left: 0;
+}
+.splitter_panel .bottom_panel {
+   bottom: 0;
+}
+.splitter_panel .right_panel {
+   right: 0;
+}
+.splitterMask {
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+}        </style>
+        <!--[if IE]>
+        <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+        <![endif]-->
+
+        <link rel="stylesheet" href="http://yui.yahooapis.com/pure/0.5.0/pure-min.css">
+        <style type="text/css">
+/*
+* Pure CSS Components - http://www.felipefialho.com/css-components/
+* Author: Luiz Felipe Tartarotti Fialho
+* hi@felipefialho.com
+* http://www.felipefialho.com/
+*/
+.tab {
+  position: relative;
+}
+.tab-painel {
+  display: inline-block;
+  min-height: 150px;
+}
+.tab-painel .tab-open {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+.tab-nav {
+  border: #aaaaaa solid 1px;
+  cursor: pointer;
+  font-size: 14px;
+  display: inline-block;
+  padding: 10px 20px;
+  margin-right: 20px;
+}
+.tab-open .tab-nav:hover,
+.tab-open:checked ~ .tab-nav {
+  background-color: #eeeeee;
+}
+.tab-inner {
+  opacity: 0;
+  margin-top: 20px;
+  position: absolute;
+  left: 0;
+  -webkit-transition: opacity 0.1s;
+  -o-transition: opacity 0.1s;
+  transition: opacity 0.1s;
+  visibility: hidden;
+}
+.tab-open:focus:checked ~ .tab-nav {
+  outline: thin dotted;
+}
+.tab-open:checked ~ .tab-inner {
+  opacity: 100;
+  visibility: visible;
+}
+        </style>
+        <style type="text/css">
+            #main {
+                position: absolute;
+                left: 1em;
+                right: 1em;
+                top: 1em;
+                bottom: 1em;
+            }
+            
+            #main {
+                cursor: url;
+            }
+        </style>
+        
+        <script type="text/javascript">
+            jQuery(function($) {
+                $('#main').split({orientation:'horizontal', limit:150});
+            });
+        </script>
+
+<!--  <div class="tab-painel">
+    <input class="tab-open" id="tab-1" name="tab-wrap-1" type="radio" checked>
+    <label class="tab-nav" for="tab-1">Tab 1</label>
+    <div class="tab-inner">
+      ...1
+    </div>
+  </div>-->
+
+        <script type="text/javascript">
+            function selectEvent(event) {
+                var container = document.getElementById("content");
+                container.innerHTML = "";
+                window.selectedEvent = event;
+                
+                var tabIndex = 0;
+                var checkedAdded = false;
+                function addTab(title, checked) {
+                    if (checked && checkedAdded)
+                        checked = false;
+                    if (checked)
+                        checkedAdded = true;
+                    var tp = document.createElement("div");
+                    tp.setAttribute("class", "tab-painel");
+                    
+                    tabIndex++;
+                    
+                    var e = document.createElement("input");
+                    var inp = e;
+                    e.setAttribute("class", "tab-open");
+                    e.setAttribute("id", "tab-" + tabIndex);
+                    e.setAttribute("name", "tab-wrap-1");
+                    e.setAttribute("type", "radio");
+                    if (checked)
+                        e.setAttribute("checked", true);
+                    tp.appendChild(e);
+                    
+                    e = document.createElement("label");
+                    e.setAttribute("class", "tab-nav");
+                    e.setAttribute("for", "tab-" + tabIndex);
+                    e.appendChild(document.createTextNode(title));
+                    tp.appendChild(e);
+                    
+                    e = document.createElement("div");
+                    e.setAttribute("class", "tab-inner");
+                    e.setAttribute("style", "display:none");
+                    e.onclick = function() {
+                        this.style.display='';
+                    };
+                    inp.onclick = function() {
+                        e.style.display=this.checked?"":"none";
+                    };
+                    tp.appendChild(e);
+                    
+                    container.appendChild(tp);
+                    
+                    return e;
+                }
+                
+                function sv(v) {
+                    if (v === null)
+                        return "null";
+                    if (typeof v === "string")
+                        return v;
+                    return v.toString();
+                }
+                
+                function el(a,b) {
+                    var el = document.createElement(a);
+                    if (typeof b === "string" && b !== "")
+                        el.appendChild(document.createTextNode(b));
+                    else if (typeof b === "object")
+                        el.appendChild(b);
+                    return el;
+                }
+
+                if (event.request) {
+                    var req = event.request;
+                    var t = addTab("Request", true);
+                    
+                    t.appendChild(el("h3", req.method + " " + req.url));
+                    if (req.addtionalHeaders) {
+                        t.appendChild(el("h4", "Addtional headers"));
+                        var table = el("table");
+                        table.setAttribute("class", "pure-table");
+                        
+                        var row = el("tr");
+                        row.appendChild(el("th","Header"));
+                        row.appendChild(el("th","Value"));
+                        table.appendChild(row);
+                        
+                        var odd = true;
+                        for(var k in req.addtionalHeaders) {
+                            var row = el("tr");
+                            if (odd) {
+                                row.setAttribute("class", "pure-table-odd");
+                            }
+                            row.appendChild(el("td",k));
+                            row.appendChild(el("td",req.addtionalHeaders[k]));
+                            table.appendChild(row);
+                            
+                            odd = !odd;
+                        }
+                        
+                        t.appendChild(table);
+                    }
+                    
+                    if (req.requestParameters) {
+                        t.appendChild(el("h4", "Request parameters"));
+
+                        var table = el("table");
+                        table.setAttribute("class", "pure-table");
+                        
+                        var row = el("tr");
+                        row.appendChild(el("th","Header"));
+                        row.appendChild(el("th","Value"));
+                        table.appendChild(row);
+                        
+                        var odd = true;
+                        for(var i = 0; i < req.requestParameters.length; i++) {
+                            var p = req.requestParameters[i];
+                            var row = el("tr");
+                            if (odd) {
+                                row.setAttribute("class", "pure-table-odd");
+                            }
+                            row.appendChild(el("td",p.key));
+                            row.appendChild(el("td",p.value));
+                            table.appendChild(row);
+                            
+                            odd = !odd;
+                        }
+                        
+                        t.appendChild(table);
+                    }
+                    
+                    if (req.cookies) {
+                        t.appendChild(el("h4", "Request Cookies"));
+
+                        var table = el("table");
+                        table.setAttribute("class", "pure-table");
+                        
+                        var row = el("tr");
+                        row.appendChild(el("th","Name"));
+                        row.appendChild(el("th","Value"));
+                        row.appendChild(el("th","Domain"));
+                        row.appendChild(el("th","Path"));
+                        row.appendChild(el("th","Expires"));
+                        row.appendChild(el("th","Http Only"));
+                        row.appendChild(el("th","Secure"));
+                        table.appendChild(row);
+                        
+                        var odd = true;
+                        for(var i = 0; i < req.cookies.length; i++) {
+                            var p = req.cookies[i];
+                            var row = el("tr");
+                            if (odd) {
+                                row.setAttribute("class", "pure-table-odd");
+                            }
+                            row.appendChild(el("td",sv(p.name)));
+                            row.appendChild(el("td",sv(p.value)));
+                            row.appendChild(el("td",sv(p.domain)));
+                            row.appendChild(el("td",sv(p.path)));
+                            row.appendChild(el("td",sv(p.expires)));
+                            row.appendChild(el("td",sv(p.httponly)));
+                            row.appendChild(el("td",sv(p.secure)));
+                            table.appendChild(row);
+                            
+                            odd = !odd;
+                        }
+                        
+                        t.appendChild(table);
+                    }
+                    
+                    if (req.body) {
+                        t.appendChild(el("h4", "Request body"));
+
+                        t.appendChild(el("pre", req.body))
+                    }
+                }
+                
+                if (event.response) {
+                    var resp = event.response;
+
+                    var t = addTab("Response Headers", true);
+                    
+                    t.appendChild(el("h3", "" + resp.statusCode + " " + resp.statusMessage + " (" + (resp.loadtime / 1000) + " sec)"));
+
+                    var table = el("table");
+                    table.setAttribute("class", "pure-table");
+
+                    var row = el("tr");
+                    row.appendChild(el("th","Header"));
+                    row.appendChild(el("th","Value"));
+                    table.appendChild(row);
+
+                    var odd = true;
+                    for(var i = 0; i < resp.headers.length; i++) {
+                        var p = resp.headers[i];
+                        var row = el("tr");
+                        if (odd) {
+                            row.setAttribute("class", "pure-table-odd");
+                        }
+                        row.appendChild(el("td",p.key));
+                        row.appendChild(el("td",p.value));
+                        table.appendChild(row);
+
+                        odd = !odd;
+                    }
+
+                    t.appendChild(table);
+                    
+                    if (resp.contentUncompressed) {
+                        t = addTab("Formatted Response");
+                        
+                        t.appendChild(el("pre", resp.contentUncompressed));
+                    }
+                    
+                    if (resp.contentUrl) {
+                        if (resp.contentType.substring(0, "image/".length) == "image/") {
+                            t = addTab("Response");
+
+                            var img = el("img");
+                            iframe.setAttribute("src", resp.contentUrl);
+                            t.appendChild(el);
+                        }
+                        if (((resp.contentType.substring(0, "text/".length) == "text/") || resp.contentType === "application/javascript") && (resp.contentCharset === "UTF-8" || resp.contentCharset === null)) {
+                            var data = resp.contentUrl;
+                            var i = data.indexOf(",");
+                            
+                            if (i == -1) {
+                                data = null;
+                            } else {
+                                data = atob(data.substring(i + 1));
+                            }
+
+                            if (data) {
+                                t = addTab("Response");
+                                t.appendChild(el("pre", data));
+                            }
+                        }
+                    }
+                    
+                }
+                
+                if (event.error) {
+                    var err = event.error;
+
+                    var t = addTab("Error", true);
+                    t.appendChild(el("pre", err.stack));
+                }
+
+                if (event.mark) {
+                    var t = addTab("Mark", true);
+                    t.appendChild(el("pre", event.mark));
+                }
+
+                if (event.textData) {
+                    var t = addTab(event.dataCaption ? event.dataCaption : "Data", true);
+                    t.appendChild(el("pre", event.textData));
+                }
+                
+                if (event.extraData) {
+                    event.extraData.forEach(function(d) {
+                        var t = addTab(d.caption ? d.caption : "Data", true);
+                        t.appendChild(el("pre", d.text));
+                    });
+                }
+
+                if (event.stack) {
+                    var t = addTab("Stack", true);
+                    t.appendChild(el("pre", event.stack));
+                }
+
+                var t = addTab("JSON", true);
+                t.appendChild(el("pre", JSON.stringify(event, 4, 4)));
+            }
+            
+            function populateLog() {
+
+                DebuggingWebConnectionLog = {
+                    events: document.querySelectorAll("script[type='text/x-event-json']"),
+                    get: function(index) {
+                        try {
+                            var event = this.events[index];
+                            var encoding = event.getAttribute("encoding");
+                            if (!encoding) {
+                                return JSON.parse(event.innerHTML);
+                            } else if (encoding === "base64") {
+                                return JSON.parse(atob(event.innerHTML));
+                            } else {
+                                throw new Error("bad encoding");
+                            }
+                        } catch (e) {
+                            console.log(e);
+                            return {
+                                "mark": "bad event",
+                                "parseError": e.message,
+                                "json": this.events[index].innerHTML
+                            };
+                        }
+                    },
+                    forEach: function(f) {
+                        for(var i = 0; i < this.events.length; i++) {
+                            f(this.get(i));
+                        }
+                    }
+                };
+
+                function el(a,b) {
+                    var el = document.createElement(a);
+                    if (typeof b === "string" && b !== "")
+                        el.appendChild(document.createTextNode(b));
+                    else if (typeof b === "object")
+                        el.appendChild(b);
+                    return el;
+                }
+
+                var el;
+                var table = document.createElement("table");
+                table.setAttribute("class","pure-table");
+                document.getElementById("menu").appendChild(table);
+                
+                var row = document.createElement("tr");
+                
+                ["#","Time","Type","URL/Message"].forEach(function(e) {
+                    row.appendChild(el("th", e));
+                    
+                });
+                
+                table.appendChild(row);
+                
+                var index = 0;
+                var start = DebuggingWebConnectionLog.get(0).time;
+                var odd = true;
+                DebuggingWebConnectionLog.forEach(function(event) {
+                    if (event === null) {
+                        console.log("Null event detected");
+                        return;
+                    }
+                    
+                    var row = document.createElement("tr");
+                    if (odd) {
+                        row.setAttribute("class", "pure-table-odd");
+                    }
+                    row.htmlUnitEvent = event;
+                    row.addEventListener("click", function() {
+                        selectEvent(event);
+                    });
+                    
+                    var idx = ""+ ++index;
+                    if (event.pageUrl) {
+                        idx = el("a", idx);
+                        idx.setAttribute("href", event.pageUrl);
+                        idx.setAttribute("target", "_blank");
+                    }
+                    
+                    row.appendChild(el("td",idx));
+                    row.appendChild(el("td","+"+((event.time - start) / 1000)));
+                    
+                    if (event.request) {
+                        row.appendChild(el("td","HTTP"));
+                        if (event.response) {
+                            var a = event.response.statusCode + " " + event.response.statusMessage;
+                            if (event.response.contentUrl) {
+                                a = el("a",a);
+                                a.setAttribute("href", event.response.contentUrl);
+                                a.setAttribute("target", "_blank");
+                            }
+                            var td = el("td", event.request.url + " ");
+                            td.appendChild(a);
+                            row.appendChild(td);
+                        } else if (event.error) {
+                            row.appendChild(el("td",event.error.message));
+                        }
+                    } else if (event.mark) {
+                        row.appendChild(el("td","Mark"));
+                        row.appendChild(el("td", event.mark));
+                    } else {
+                        row.appendChild(el("td","Other"));
+                        
+                    }
+                    
+                    table.appendChild(row);
+                    
+                    odd = !odd;
+                });
+            }
+
+            var myOnLoad = function() {
+                populateLog();
+            }
+            
+        </script>
+        
+    </head>
+    <body onload="myOnLoad();">
+        <div id="main">
+            <div id="menu">
+            </div>
+            <div id="content" class="tab">
+
+                <!-- Tab Painel -->
+                <div class="tab-painel">
+                    <input class="tab-open" id="tab-1" name="tab-wrap-1" type="radio" checked>
+                    <label class="tab-nav" for="tab-1">HtmlUnit Log Viewer</label>
+                    <div class="tab-inner">
+                        Use the menu above to select event, you wish to examine.
+                    </div>
+                </div>
+
+
+            </div>
+        </div>
+
+        <!--SCRIPT EVENTS PLACEHOLDER-->
+    </body>
+</html>
