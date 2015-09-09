@@ -40,9 +40,6 @@ import org.apache.commons.codec.binary.Base64;
  * Utility to handle conversion from HTML code to XML string.
  * @version $Revision: 9168 $
  * @author Nuke Sparrow <nukesparrow@bitmessage.ch>
- * @author Nuke Sparrow <nukesparrow@bitmessage.ch>
- * @author Nuke Sparrow <nukesparrow@bitmessage.ch>
- * @author Nuke Sparrow <nukesparrow@bitmessage.ch>
  */
 class DataUrlXmlSerializer {
 
