@@ -34,15 +34,12 @@ import net.sourceforge.htmlunit.corejs.javascript.ContextFactory;
 import net.sourceforge.htmlunit.corejs.javascript.Script;
 
 import static nukesparrow.htmlunit.Util.*;
-import com.gargoylesoftware.htmlunit.HttpWebConnection;
 import com.gargoylesoftware.htmlunit.InteractivePage;
 import com.gargoylesoftware.htmlunit.WebClient;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import com.gargoylesoftware.htmlunit.util.Cookie;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOError;
-import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -202,7 +199,7 @@ public class DebuggingWebConnection implements WebConnection, AutoCloseable {
                 String encoding = null;
                 
                 String cc = content.toLowerCase();
-                if (content.indexOf("</script>") != -1 || content.indexOf("<!--") != -1) {
+                if (cc.contains("</script>") || cc.contains("<!--")) {
                     encoding = "base64";
                     try {
                         content = Base64.encodeBase64String(content.getBytes("UTF-8"));
