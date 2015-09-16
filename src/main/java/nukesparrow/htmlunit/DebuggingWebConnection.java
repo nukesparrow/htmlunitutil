@@ -136,6 +136,12 @@ public class DebuggingWebConnection implements WebConnection, AutoCloseable {
         }
     }
 
+    public DebuggingWebConnection(WebConnection wrapped, File logFile) {
+        this(wrapped);
+        
+        this.logFile = logFile;
+    }
+
     public DebuggingWebConnection(WebConnection wrapped, String dirName) {
         this(wrapped);
         final File tmpDir = new File(System.getProperty("java.io.tmpdir"));
