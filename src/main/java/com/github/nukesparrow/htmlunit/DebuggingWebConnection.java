@@ -16,7 +16,7 @@
 
 // TODO : Import copyrights from HtmlUnit's DebuggingWebConnection
 
-package nukesparrow.htmlunit;
+package com.github.nukesparrow.htmlunit;
 
 import com.gargoylesoftware.htmlunit.WebConnection;
 import com.gargoylesoftware.htmlunit.WebRequest;
@@ -33,7 +33,7 @@ import net.sourceforge.htmlunit.corejs.javascript.ContextAction;
 import net.sourceforge.htmlunit.corejs.javascript.ContextFactory;
 import net.sourceforge.htmlunit.corejs.javascript.Script;
 
-import static nukesparrow.htmlunit.Util.*;
+import static com.github.nukesparrow.htmlunit.Util.*;
 import com.gargoylesoftware.htmlunit.InteractivePage;
 import com.gargoylesoftware.htmlunit.WebClient;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;

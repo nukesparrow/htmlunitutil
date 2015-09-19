@@ -13,10 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nukesparrow.htmlunit;
+package com.github.nukesparrow.htmlunit;
 
 import com.gargoylesoftware.htmlunit.TopLevelWindow;
 import com.gargoylesoftware.htmlunit.WebClient;
+import java.io.File;
 import java.net.MalformedURLException;
 import java.net.URL;
 
@@ -45,6 +46,11 @@ public class HUQuery implements AutoCloseable {
     
     public HUQuery debug(String dir) {
         webClient.setWebConnection(dwc = new DebuggingWebConnection(webClient.getWebConnection(), dir));
+        return this;
+    }
+    
+    public HUQuery debug(File f) {
+        webClient.setWebConnection(dwc = new DebuggingWebConnection(webClient.getWebConnection(), f));
         return this;
     }
     

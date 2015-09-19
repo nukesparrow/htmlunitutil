@@ -16,7 +16,7 @@
 
 // TODO : Import copyrights from HtmlUnit's DataUrlXmlSerializer
 
-package nukesparrow.htmlunit;
+package com.github.nukesparrow.htmlunit;
 
 import java.io.IOException;
 import java.util.HashMap;

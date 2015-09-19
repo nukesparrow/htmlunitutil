@@ -13,37 +13,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nukesparrow.htmlunit;
+package com.github.nukesparrow.htmlunit;
 
 /**
  *
  * @author Nuke Sparrow <nukesparrow@bitmessage.ch>
  */
-public class HUQueryException extends RuntimeException {
+public class HUOCRException extends Exception {
 
-    /**
-     * Creates a new instance of <code>HUQueryException</code> without detail
-     * message.
-     */
-    public HUQueryException() {
+    public HUOCRException() {
     }
 
-    /**
-     * Constructs an instance of <code>HUQueryException</code> with the
-     * specified detail message.
-     *
-     * @param msg the detail message.
-     */
-    public HUQueryException(String msg) {
-        super(msg);
+    public HUOCRException(String message) {
+        super(message);
     }
 
-    public HUQueryException(String message, Throwable cause) {
+    public HUOCRException(String message, Throwable cause) {
         super(message, cause);
     }
 
-    public HUQueryException(Throwable cause) {
+    public HUOCRException(Throwable cause) {
         super(cause);
     }
 
+    public HUOCRException(String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
+        super(message, cause, enableSuppression, writableStackTrace);
+    }
+    
 }
