@@ -49,8 +49,8 @@ public class HUQuery implements AutoCloseable {
         return this;
     }
     
-    public HUQuery debug(File f) {
-        webClient.setWebConnection(dwc = new DebuggingWebConnection(webClient.getWebConnection(), f));
+    public HUQuery debug(File file) {
+        webClient.setWebConnection(dwc = new DebuggingWebConnection(webClient.getWebConnection(), file));
         return this;
     }
     
@@ -85,7 +85,13 @@ public class HUQuery implements AutoCloseable {
     @Override
     public void close() {
         mark("closing");
-        webClient.closeAllWindows();
+        
+        webClient.close();
+
+        if (dwc != null) {
+            dwc.close();
+            dwc = null;
+        }
     }
     
 }
