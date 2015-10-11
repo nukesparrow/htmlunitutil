@@ -270,7 +270,10 @@ public class DebuggingWebConnection implements WebConnection, AutoCloseable {
 
         try {
             File tmpFile = new File(logFile.getPath() + "~");
-            tmpFile.getParentFile().mkdirs();
+            File parentFile = tmpFile.getParentFile();
+            if (parentFile != null) {
+                parentFile.mkdirs();
+            }
             try (PrintStream out = new PrintStream(tmpFile, LOG_CHARSET.name())) {
                 writeHtml(out);
             }
