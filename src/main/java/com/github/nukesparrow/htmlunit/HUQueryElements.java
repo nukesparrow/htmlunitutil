@@ -115,6 +115,18 @@ public class HUQueryElements<Elem extends HtmlElement> implements Iterable<HUQue
             throw new HUQueryException("Pattern " + pattern + " not found in " + text());
         }
     }
+    
+    public String html() {
+        return e().asXml();
+    }
+    
+    public String attr(String name) {
+        return e().getAttribute(name);
+    }
+
+    public void attr(String name, String value) {
+        e().setAttribute(name, value);
+    }
 
     public boolean found() {
         return !elements.isEmpty();
