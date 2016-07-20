@@ -15,6 +15,8 @@
  */
 package com.github.nukesparrow.htmlunit;
 
+import com.gargoylesoftware.htmlunit.html.HtmlAnchor;
+import com.gargoylesoftware.htmlunit.html.HtmlArea;
 import com.gargoylesoftware.htmlunit.html.HtmlElement;
 import com.gargoylesoftware.htmlunit.html.HtmlImage;
 import com.gargoylesoftware.htmlunit.html.impl.SelectableTextInput;
@@ -131,7 +133,11 @@ public class HUQueryElements<Elem extends HtmlElement> implements Iterable<HUQue
     public boolean found() {
         return !elements.isEmpty();
     }
-    
+
+    public int count() {
+        return elements.size();
+    }
+
     public void required() {
         if (!found())
             throw new HUQueryException("Required element missing");
@@ -154,6 +160,30 @@ public class HUQueryElements<Elem extends HtmlElement> implements Iterable<HUQue
                 return new HUQueryElements(w, elements.get(index));
             }
         };
+    }
+
+    @Override
+    public String toString() {
+        return elements.isEmpty() ? "<no elements>" : String.valueOf(elements);
+    }
+    
+    public String asText() {
+        String t;
+        
+        if ((t = e().asText()) != null && !t.isEmpty())
+            return t;
+        
+        if (!(t = e().getId()).isEmpty())
+            return t;
+        
+        if (!(t = e().getAttribute("class")).isEmpty())
+            return t;
+        
+        if ((e() instanceof HtmlAnchor) || (e() instanceof HtmlArea))
+            if (!(t = e().getAttribute("href")).isEmpty())
+                return t.replaceAll("[^A-Za-z0-9]+", t);
+
+        return "";
     }
 
 }

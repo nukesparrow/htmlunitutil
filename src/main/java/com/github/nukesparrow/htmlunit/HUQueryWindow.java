@@ -17,8 +17,14 @@ package com.github.nukesparrow.htmlunit;
 
 import com.gargoylesoftware.htmlunit.TopLevelWindow;
 import com.gargoylesoftware.htmlunit.WebWindow;
+import com.gargoylesoftware.htmlunit.html.HtmlAnchor;
+import com.gargoylesoftware.htmlunit.html.HtmlArea;
 import com.gargoylesoftware.htmlunit.html.HtmlElement;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.stream.Stream;
 
 /**
  *
@@ -82,4 +88,27 @@ public class HUQueryWindow<Window extends WebWindow> {
         return (HtmlPage) w.getEnclosedPage();
     }
 
+    public List<HtmlElement> getClickable() {
+        return getClickable(htmlPage().getBody());
+    }
+
+    public List<HtmlElement> getClickable(HtmlElement root) {
+        List<HtmlElement> clickable = new ArrayList<>();
+
+        // TODO : check for all clickable element types
+        for (HtmlElement e : root.getHtmlElementDescendants()) {
+            if ((e instanceof HtmlAnchor) && e.hasAttribute("href")) {
+                clickable.add(e);
+            }
+            else if ((e instanceof HtmlArea) && e.hasAttribute("href")) {
+                clickable.add(e);
+            }
+            else if (e.hasAttribute("onclick") || e.hasEventHandlers("click")) {
+                clickable.add(e);
+            }
+        }
+        
+        return clickable;
+    }
+    
 }

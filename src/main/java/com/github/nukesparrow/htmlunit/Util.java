@@ -18,6 +18,7 @@ package com.github.nukesparrow.htmlunit;
 import com.gargoylesoftware.htmlunit.WebResponse;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import org.apache.commons.codec.binary.Base64;
@@ -71,5 +72,5 @@ class Util {
         }
         return b.toString();
     }
-
+    
 }
