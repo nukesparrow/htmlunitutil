@@ -93,5 +93,15 @@ public class HUQuery implements AutoCloseable {
             dwc = null;
         }
     }
+
+    public HUQueryWindow<TopLevelWindow> openOrFind(URL url) {
+        for (TopLevelWindow w : webClient.getTopLevelWindows()) {
+            if (w != null && w.getEnclosedPage() != null && url.equals(w.getEnclosedPage().getUrl())) {
+                return new HUQueryWindow(this, w);
+            }
+        }
+        
+        return open(url);
+    }
     
 }

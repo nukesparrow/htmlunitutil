@@ -48,6 +48,10 @@ public class HUQueryWindow<Window extends WebWindow> {
         return new HUQueryElements(this, ((HtmlPage)w.getEnclosedPage()).querySelectorAll(selector));
     }
 
+    public HUQueryElements<? extends HtmlElement> e(HtmlElement e) {
+        return new HUQueryElements(this, e);
+    }
+    
     public void mark(String mark) {
         if (q.dwc == null)
             return;
@@ -73,5 +77,9 @@ public class HUQueryWindow<Window extends WebWindow> {
             return url.equals(test);
         }
     }
-    
+
+    public HtmlPage htmlPage() {
+        return (HtmlPage) w.getEnclosedPage();
+    }
+
 }
