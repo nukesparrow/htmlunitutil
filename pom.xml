@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.github.nukesparrow</groupId>
     <artifactId>htmlunitutils</artifactId>
-    <version>2015.09.16</version>
+    <version>2.22-20160720</version>
     <packaging>jar</packaging>
     <dependencies>
         <dependency>
@@ -14,7 +14,7 @@
         <dependency>
             <groupId>net.sourceforge.htmlunit</groupId>
             <artifactId>htmlunit</artifactId>
-            <version>2.18</version>
+            <version>2.22</version>
         </dependency>
     </dependencies>
     <properties>
