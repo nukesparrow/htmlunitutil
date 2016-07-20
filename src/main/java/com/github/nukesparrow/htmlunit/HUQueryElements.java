@@ -15,6 +15,8 @@
  */
 package com.github.nukesparrow.htmlunit;
 
+import com.gargoylesoftware.htmlunit.html.HtmlAnchor;
+import com.gargoylesoftware.htmlunit.html.HtmlArea;
 import com.gargoylesoftware.htmlunit.html.HtmlElement;
 import com.gargoylesoftware.htmlunit.html.HtmlImage;
 import com.gargoylesoftware.htmlunit.html.impl.SelectableTextInput;
@@ -26,6 +28,7 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  *
@@ -131,7 +134,11 @@ public class HUQueryElements<Elem extends HtmlElement> implements Iterable<HUQue
     public boolean found() {
         return !elements.isEmpty();
     }
-    
+
+    public int count() {
+        return elements.size();
+    }
+
     public void required() {
         if (!found())
             throw new HUQueryException("Required element missing");
@@ -154,6 +161,30 @@ public class HUQueryElements<Elem extends HtmlElement> implements Iterable<HUQue
                 return new HUQueryElements(w, elements.get(index));
             }
         };
+    }
+
+    @Override
+    public String toString() {
+        return elements.isEmpty() ? "<no elements>" : String.valueOf(elements);
+    }
+    
+    public String asText() {
+        String t;
+        
+        if ((t = e().asText()) != null && !t.isEmpty())
+            return t;
+        
+        if (!(t = e().getId()).isEmpty())
+            return StringUtils.join(UrlTextUtil.extractWords(t), ' ');
+        
+        if (!(t = e().getAttribute("class")).isEmpty())
+            return StringUtils.join(UrlTextUtil.extractWords(t), ' ');
+        
+        if ((e() instanceof HtmlAnchor) || (e() instanceof HtmlArea))
+            if (!(t = e().getAttribute("href")).isEmpty())
+                return StringUtils.join(UrlTextUtil.extractWords(t), ' ');
+
+        return "";
     }
 
 }
