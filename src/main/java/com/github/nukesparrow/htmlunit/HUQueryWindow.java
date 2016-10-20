@@ -88,11 +88,19 @@ public class HUQueryWindow<Window extends WebWindow> {
         return (HtmlPage) w.getEnclosedPage();
     }
 
-    public List<HtmlElement> getClickable() {
-        return getClickable(htmlPage().getBody());
+    public HUQueryElements<?> getClickable() {
+        return new HUQueryElements(this, getClickableElements());
     }
 
-    public List<HtmlElement> getClickable(HtmlElement root) {
+    public List<HtmlElement> getClickableElements() {
+        return getClickableElements(htmlPage().getBody());
+    }
+
+    public HUQueryElements<?> getClickable(HtmlElement root) {
+        return new HUQueryElements(this, getClickableElements());
+    }
+
+    public List<HtmlElement> getClickableElements(HtmlElement root) {
         List<HtmlElement> clickable = new ArrayList<>();
 
         // TODO : check for all clickable element types
@@ -110,5 +118,9 @@ public class HUQueryWindow<Window extends WebWindow> {
         
         return clickable;
     }
-    
+
+    public HUQueryElements none() {
+        return new HUQueryElements(this);
+    }
+
 }

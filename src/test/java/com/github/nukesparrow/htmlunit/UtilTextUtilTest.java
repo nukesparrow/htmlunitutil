@@ -15,10 +15,8 @@
  */
 package com.github.nukesparrow.htmlunit;
 
-import org.apache.commons.lang3.StringUtils;
 import org.junit.Test;
 import static org.junit.Assert.*;
-import com.github.nukesparrow.htmlunit.UrlTextUtil;
 
 /**
  *

@@ -72,14 +72,18 @@ public class HUQuery implements AutoCloseable {
 
     public HUQueryWindow<TopLevelWindow> open(String url) {
         try {
-            return open(new URL(url));
+            HUQueryWindow w = open(new URL(url));
+            waitJavascript();
+            return w;
         } catch (MalformedURLException ex) {
             throw new IllegalArgumentException(url, ex);
         }
     }
 
     public HUQueryWindow<TopLevelWindow> open(URL url) {
-        return new HUQueryWindow(this, webClient.openWindow(url, ""));
+        HUQueryWindow w = new HUQueryWindow(this, webClient.openWindow(url, ""));
+        waitJavascript();
+        return w;
     }
 
     @Override
@@ -89,7 +93,7 @@ public class HUQuery implements AutoCloseable {
         webClient.close();
 
         if (dwc != null) {
-            dwc.close();
+            //dwc.close();
             dwc = null;
         }
     }
@@ -103,5 +107,11 @@ public class HUQuery implements AutoCloseable {
         
         return open(url);
     }
+
+    public void waitJavascript() {
+        webClient.waitForBackgroundJavaScript(webClient.getOptions().getTimeout());
+    }
+
+    public boolean filterLatin = true;
     
 }

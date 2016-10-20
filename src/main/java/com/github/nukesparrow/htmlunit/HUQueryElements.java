@@ -19,9 +19,13 @@ import com.gargoylesoftware.htmlunit.html.HtmlAnchor;
 import com.gargoylesoftware.htmlunit.html.HtmlArea;
 import com.gargoylesoftware.htmlunit.html.HtmlElement;
 import com.gargoylesoftware.htmlunit.html.HtmlImage;
+import com.gargoylesoftware.htmlunit.html.HtmlOption;
+import com.gargoylesoftware.htmlunit.html.HtmlSelect;
+import com.gargoylesoftware.htmlunit.html.SubmittableElement;
 import com.gargoylesoftware.htmlunit.html.impl.SelectableTextInput;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -49,6 +53,11 @@ public class HUQueryElements<Elem extends HtmlElement> implements Iterable<HUQue
         this.elements = Collections.singletonList(element);
     }
     
+    HUQueryElements(HUQueryWindow w, Elem... elements) {
+        this.w = w;
+        this.elements = Arrays.asList(elements);
+    }
+
     public HUQueryElements<? extends HtmlElement> e(String selector) {
         return new HUQueryElements(w, e().querySelectorAll(selector));
     }
@@ -56,10 +65,11 @@ public class HUQueryElements<Elem extends HtmlElement> implements Iterable<HUQue
     public Elem e() {
         return elements.get(0);
     }
-
+    
     public void click() {
         try {
             e().click();
+            w.q.waitJavascript();
         } catch (IOException ex) {
             throw new HUQueryException(ex);
         }
@@ -77,6 +87,22 @@ public class HUQueryElements<Elem extends HtmlElement> implements Iterable<HUQue
         } catch (IOException ex) {
             throw new HUQueryException(ex);
         }
+    }
+
+    public void select(String text) throws IOException {
+        HtmlSelect s = (HtmlSelect)e();
+        HtmlOption o;
+        o = s.getOptionByText(text);
+        if (o == null) {
+            o = s.getOptionByValue(text);
+        }
+        
+        e().click();
+        o.click();
+        w.q.waitJavascript();
+        
+        if (!o.isSelected())
+            o.setSelected(true);
     }
 
     public void ocr(String selector) {
@@ -168,10 +194,37 @@ public class HUQueryElements<Elem extends HtmlElement> implements Iterable<HUQue
         return elements.isEmpty() ? "<no elements>" : String.valueOf(elements);
     }
     
+    private static String filterLatin(String s) {
+        StringBuilder b = new StringBuilder();
+
+        for(int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            
+            if (Character.isAlphabetic(i)) {
+                if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z')) {
+                    b.append(c);
+                }
+                
+            }
+            else {
+                b.append(c);
+            }
+        }
+        
+        return b.toString();
+    }
+    
+    private String filterText(String s) {
+        if (w.q.filterLatin) {
+            return filterLatin(s);
+        }
+        return s;
+    }
+    
     public String asText() {
         String t;
         
-        if ((t = e().asText()) != null && !t.isEmpty())
+        if ((t = filterText(e().asText())) != null && !t.isEmpty())
             return t;
         
         if (!(t = e().getId()).isEmpty())
@@ -184,7 +237,30 @@ public class HUQueryElements<Elem extends HtmlElement> implements Iterable<HUQue
             if (!(t = e().getAttribute("href")).isEmpty())
                 return StringUtils.join(UrlTextUtil.extractWords(t), ' ');
 
+        if ((e() instanceof HtmlImage) && e().hasAttribute("alt") && ((t = filterText(e().getAttribute("alt"))) != null) && !t.isEmpty())
+            return t;
+
+        if ((t = filterText(e().getAttribute("title"))) != null && !t.isEmpty())
+            return t;
+
+        if (e() instanceof SubmittableElement && e().hasAttribute("name"))
+            return StringUtils.join(UrlTextUtil.extractWords(e().getAttribute("name")), ' ');
+
+        if (e() instanceof SubmittableElement && e().hasAttribute("onclick"))
+            return StringUtils.join(UrlTextUtil.extractWords(e().getAttribute("onclick")), ' ');
+
         return "";
+    }
+
+    public HUQueryElements<?> getClickable() {
+        if (!found())
+            return new HUQueryElements(w, Collections.EMPTY_LIST);
+
+        return w.getClickable(elements.get(0));
+    }
+
+    public HUQueryElements<Elem> next() {
+        return new HUQueryElements(w, elements.subList(1, elements.size()));
     }
 
 }

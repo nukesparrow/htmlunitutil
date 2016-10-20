@@ -291,7 +291,7 @@ public class DebuggingWebConnection implements WebConnection, AutoCloseable {
     private Throwable closed = null;
     
     @Override
-    public void close() {
+    public void close() throws Exception {
         if (closed != null)
             throw new IllegalStateException("Closed already", closed);
 
@@ -308,6 +308,8 @@ public class DebuggingWebConnection implements WebConnection, AutoCloseable {
         webConnectionCount.decrementAndGet();
         if (webConnectionCount.intValue() < 0)
             throw new IllegalStateException(webConnectionCount.toString());
+        
+        wrapped.close();
     }
 
     protected static Map boxThrowable(Throwable ex) {
