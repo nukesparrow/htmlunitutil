@@ -61,7 +61,7 @@ import org.json.simple.JSONValue;
  *
  * @author Nuke Sparrow <nukesparrow@bitmessage.ch>
  */
-public class DebuggingWebConnection implements WebConnection, AutoCloseable {
+public class DebuggingWebConnection implements WebConnection {
 
     private static final Logger LOG = Logger.getLogger(DebuggingWebConnection.class.getName());
 
