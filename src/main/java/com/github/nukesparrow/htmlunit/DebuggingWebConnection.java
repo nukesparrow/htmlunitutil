@@ -406,7 +406,10 @@ public class DebuggingWebConnection implements WebConnection {
             }
             eventResponse.put("loadtime", response.getLoadTime());
             eventResponse.put("contentType", response.getContentType());
-            eventResponse.put("contentCharset", response.getContentCharsetOrNull());
+            Charset cs = response.getContentCharsetOrNull();
+            if (cs != null) {
+                eventResponse.put("contentCharset", cs.toString());
+            }
             eventResponse.put("contentUrl", toDataUrl(response));
 
             if (uncompressJavaScript && isJavaScript(response.getContentType())) {
