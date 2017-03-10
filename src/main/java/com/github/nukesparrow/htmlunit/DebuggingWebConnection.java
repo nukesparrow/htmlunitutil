@@ -18,6 +18,7 @@
 
 package com.github.nukesparrow.htmlunit;
 
+import com.gargoylesoftware.htmlunit.SgmlPage;
 import com.gargoylesoftware.htmlunit.WebConnection;
 import com.gargoylesoftware.htmlunit.WebRequest;
 import com.gargoylesoftware.htmlunit.WebResponse;
@@ -34,7 +35,6 @@ import net.sourceforge.htmlunit.corejs.javascript.ContextFactory;
 import net.sourceforge.htmlunit.corejs.javascript.Script;
 
 import static com.github.nukesparrow.htmlunit.Util.*;
-import com.gargoylesoftware.htmlunit.InteractivePage;
 import com.gargoylesoftware.htmlunit.WebClient;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import com.gargoylesoftware.htmlunit.util.Cookie;
@@ -446,7 +446,7 @@ public class DebuggingWebConnection implements WebConnection {
         addMark(mark, (HtmlPage)null, (Throwable)null, data);
     }
 
-    public void addMark(String mark, InteractivePage page, Object... data) {
+    public void addMark(String mark, SgmlPage page, Object... data) {
         addMark(mark, page, (Throwable)null, data);
     }
 
@@ -454,7 +454,7 @@ public class DebuggingWebConnection implements WebConnection {
         addMark(mark, (HtmlPage)null, error, data);
     }
 
-    public void addMark(String mark, InteractivePage page, Throwable error, Object... data) {
+    public void addMark(String mark, SgmlPage page, Throwable error, Object... data) {
         MapBuilder mb = mapBuilderBaseData();
         List<Map> extraData = null;
         MapBuilder db = null;
