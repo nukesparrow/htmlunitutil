@@ -155,10 +155,12 @@ public class HUQuery implements AutoCloseable {
     public void setOcr(HUOCR ocr) {
         this.ocr = ocr;
     }
+    
+    public HUQueryWindow w = null;
 
     public HUQueryWindow<TopLevelWindow> open(String url) {
         try {
-            HUQueryWindow w = open(new URL(url));
+            w = open(new URL(url));
             waitJavascript();
             return w;
         } catch (MalformedURLException ex) {
@@ -167,7 +169,7 @@ public class HUQuery implements AutoCloseable {
     }
 
     public HUQueryWindow<TopLevelWindow> open(URL url) {
-        HUQueryWindow w = new HUQueryWindow(this, webClient.openWindow(url, ""));
+        w = new HUQueryWindow(this, webClient.openWindow(url, ""));
         waitJavascript();
         return w;
     }
@@ -185,9 +187,9 @@ public class HUQuery implements AutoCloseable {
     }
 
     public HUQueryWindow<TopLevelWindow> openOrFind(URL url) {
-        for (TopLevelWindow w : webClient.getTopLevelWindows()) {
-            if (w != null && w.getEnclosedPage() != null && url.equals(w.getEnclosedPage().getUrl())) {
-                return new HUQueryWindow(this, w);
+        for (TopLevelWindow win : webClient.getTopLevelWindows()) {
+            if (win != null && win.getEnclosedPage() != null && url.equals(win.getEnclosedPage().getUrl())) {
+                return w = new HUQueryWindow(this, win);
             }
         }
         
@@ -195,10 +197,10 @@ public class HUQuery implements AutoCloseable {
     }
     
     public HUQueryWindow<WebWindow> currentWindow() {
-        WebWindow w = webClient.getCurrentWindow();
-        if (w == null)
+        WebWindow win = webClient.getCurrentWindow();
+        if (win == null)
             return null;
-        return new HUQueryWindow(this, w);
+        return w = new HUQueryWindow(this, win);
     }
 
     public void waitJavascript() {
