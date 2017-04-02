@@ -552,7 +552,15 @@ public class DebuggingWebConnection implements WebConnection {
                 }
             }
         }
-        events.add(m);
+        logEvent(m);
+    }
+    
+    public Map<String, Object> createEvent() {
+        return mapBuilderBaseData().map;
+    }
+    
+    public void logEvent(Map<String, Object> event) {
+        events.add(event);
         autoSaveLog();
     }
 
@@ -626,7 +634,7 @@ public class DebuggingWebConnection implements WebConnection {
             || (contentType.startsWith("text/") && contentType.endsWith("js"));
     }
 
-    private boolean uncompressJavaScript = true;
+    private boolean uncompressJavaScript = false;
 
     /**
      * Indicates if it should try to format responses recognized as JavaScript.
