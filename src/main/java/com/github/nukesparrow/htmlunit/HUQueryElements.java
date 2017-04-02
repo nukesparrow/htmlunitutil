@@ -27,6 +27,7 @@ import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import com.gargoylesoftware.htmlunit.html.HtmlSelect;
 import com.gargoylesoftware.htmlunit.html.SubmittableElement;
 import com.gargoylesoftware.htmlunit.html.impl.SelectableTextInput;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -291,6 +292,10 @@ public class HUQueryElements<Elem extends HtmlElement> implements Iterable<HUQue
 
     public HUQueryElements<Elem> next() {
         return new HUQueryElements(w, elements.subList(1, elements.size()));
+    }
+
+    public void download(File file) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
 }

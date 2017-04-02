@@ -116,6 +116,7 @@ import com.gargoylesoftware.htmlunit.httpclient.SocksConnectionSocketFactory;
 import com.gargoylesoftware.htmlunit.util.KeyDataPair;
 import com.gargoylesoftware.htmlunit.util.NameValuePair;
 import com.gargoylesoftware.htmlunit.util.UrlUtils;
+import java.util.function.Function;
 
 /**
  * Default implementation of {@link WebConnection}, using the HttpClient library to perform HTTP requests.
@@ -163,7 +164,18 @@ public class DownloaderHttpWebConnection implements WebConnection {
         htmlUnitCookieSpecProvider_ = new HtmlUnitCookieSpecProvider(webClient.getBrowserVersion());
         usedOptions_ = new WebClientOptions();
     }
+    
 
+    private Function<DownloadInfo, File> downloadAcceptor = null;
+
+    public Function<DownloadInfo, File> getDownloadAcceptor() {
+        return downloadAcceptor;
+    }
+
+    public void setDownloadAcceptor(Function<DownloadInfo, File> downloadAcceptor) {
+        this.downloadAcceptor = downloadAcceptor;
+    }
+    
     /**
      * {@inheritDoc}
      */
@@ -172,7 +184,7 @@ public class DownloaderHttpWebConnection implements WebConnection {
         return getResponse(request, null);
     }
 
-    public WebResponse getResponse(final WebRequest request, final File downloadFile) throws IOException {
+    public WebResponse getResponse(final WebRequest request, File downloadFile) throws IOException {
         final URL url = request.getUrl();
         final HttpClientBuilder builder = reconfigureHttpClientIfNeeded(getHttpClientBuilder());
         final HttpContext httpContext = getHttpContext();
@@ -215,6 +227,10 @@ public class DownloaderHttpWebConnection implements WebConnection {
                 // => best solution, discard the HttpClient instance.
                 httpClientBuilder_.remove(Thread.currentThread());
                 throw e;
+            }
+
+            if (downloadFile == null && downloadAcceptor != null) {
+                downloadFile = downloadAcceptor.apply(new DownloadInfo(request, httpResponse));
             }
 
             final DownloadedContent downloadedBody = downloadResponseBody(httpResponse, downloadFile);

@@ -47,6 +47,7 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
+import net.sourceforge.htmlunit.corejs.javascript.BaseFunction;
 import net.sourceforge.htmlunit.corejs.javascript.Context;
 import net.sourceforge.htmlunit.corejs.javascript.ContextAction;
 import net.sourceforge.htmlunit.corejs.javascript.ContextFactory;
@@ -63,6 +64,8 @@ import org.w3c.css.sac.ErrorHandler;
 public class HUQuery implements AutoCloseable {
 
     public final WebClient webClient;
+    
+    private DownloaderHttpWebConnection downloaderHttpWebConnection;
 
     public HUQuery(WebClient webClient) {
         this.webClient = webClient;
@@ -75,7 +78,7 @@ public class HUQuery implements AutoCloseable {
             throw new RuntimeException(ex);
         }
         
-        webClient.setWebConnection(new DownloaderHttpWebConnection(webClient) {
+        webClient.setWebConnection(downloaderHttpWebConnection = new DownloaderHttpWebConnection(webClient) {
             @Override
             public WebResponse getResponse(WebRequest request) throws IOException {
                 
@@ -217,10 +220,12 @@ public class HUQuery implements AutoCloseable {
     private String preProcessScript(String sourceCode) {
         for (Function<String, String> pp : scriptPreProcessors) {
             final String s = sourceCode;
-            logScriptEvent("JavaScript: pre-processing script", null, new LinkedHashMap() {{
-                put("sourceCode", s);
-            }});
             sourceCode = pp.apply(sourceCode);
+            if (!s.equals(sourceCode)) {
+                logScriptEvent("JavaScript: pre-processed script modified", null, new LinkedHashMap() {{
+                    put("sourceCode", s);
+                }});
+            }
         }
         return sourceCode;
     }
@@ -234,7 +239,14 @@ public class HUQuery implements AutoCloseable {
             
             @Override
             public Object callFunction(HtmlPage page, net.sourceforge.htmlunit.corejs.javascript.Function function, Scriptable scope, Scriptable thisObject, Object[] args) {
-                logScriptEvent("JavaScript: callFunction", page, new LinkedHashMap() {{
+                String f = "";
+                
+                if (function instanceof BaseFunction) {
+                    BaseFunction bf = ((BaseFunction)function);
+                    f = ": " + bf.getFunctionName();
+                }
+                
+                logScriptEvent("JavaScript: callFunction" + f, page, new LinkedHashMap() {{
                     put("function", function.toString());
                     put("scope", scope.toString());
 
@@ -486,4 +498,8 @@ public class HUQuery implements AutoCloseable {
         webClient.setHTMLParserListener(null);
     }
     
+    public void download(File f) {
+        downloaderHttpWebConnection.setDownloadAcceptor((di) -> f);
+    }
+
 }
