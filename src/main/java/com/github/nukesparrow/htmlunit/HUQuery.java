@@ -16,12 +16,22 @@
 package com.github.nukesparrow.htmlunit;
 
 import com.gargoylesoftware.htmlunit.SilentCssErrorHandler;
+import com.gargoylesoftware.htmlunit.StringWebResponse;
 import com.gargoylesoftware.htmlunit.TopLevelWindow;
 import com.gargoylesoftware.htmlunit.WebClient;
+import com.gargoylesoftware.htmlunit.WebRequest;
+import com.gargoylesoftware.htmlunit.WebResponse;
 import com.gargoylesoftware.htmlunit.WebWindow;
 import java.io.File;
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.function.Function;
+import java.util.logging.Level;
 
 /**
  *
@@ -33,12 +43,76 @@ public class HUQuery implements AutoCloseable {
 
     public HUQuery(WebClient webClient) {
         this.webClient = webClient;
+
+        try {
+            webClient.getWebConnection().close();
+        } catch (Exception ex) {
+            throw new RuntimeException(ex);
+        }
+        
+        webClient.setWebConnection(new DownloaderHttpWebConnection(webClient) {
+            @Override
+            public WebResponse getResponse(WebRequest request) throws IOException {
+                
+                if (shouldBlockWebRequest(request.getUrl())) {
+                    return new StringWebResponse("", request.getUrl());
+                }
+                
+                return super.getResponse(request);
+            }
+
+        });
     }
 
     public HUQuery() {
         this.webClient = new WebClient();
     }
     
+    protected HashSet<Function<URL, Boolean>> webRequestBlockers = new LinkedHashSet<Function<URL, Boolean>>();
+
+    protected boolean shouldBlockWebRequest(URL url) {
+        for (Function<URL, Boolean> blocker : webRequestBlockers) {
+            if (blocker.apply(url)) {
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    public static Function<URL, Boolean> domainBlocker(String hostname) {
+        
+        String host = hostname.toLowerCase();
+        
+        return new Function<URL, Boolean>() {
+            @Override
+            public Boolean apply(URL t) {
+                String urlHost = t.getHost().toLowerCase();
+                
+                if (urlHost.length() > host.length()) {
+                    return urlHost.endsWith("." + host);
+                }
+                
+                return host.equals(urlHost);
+            }
+
+            @Override
+            public String toString() {
+                return "!" + host;
+            }
+
+        };
+    }
+    
+    public HUQuery blockUrls(Function<URL, Boolean>[] blockers) {
+        webRequestBlockers.addAll(Arrays.asList(blockers));
+        return this;
+    }
+
+    public HUQuery blockUrls(Collection<Function<URL, Boolean>> blockers) {
+        webRequestBlockers.addAll(blockers);
+        return this;
+    }
+
     DebuggingWebConnection dwc = null;
     
     public HUQuery debug() {
