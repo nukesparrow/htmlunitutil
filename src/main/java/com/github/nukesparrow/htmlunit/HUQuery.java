@@ -15,6 +15,7 @@
  */
 package com.github.nukesparrow.htmlunit;
 
+import com.gargoylesoftware.htmlunit.SilentCssErrorHandler;
 import com.gargoylesoftware.htmlunit.TopLevelWindow;
 import com.gargoylesoftware.htmlunit.WebClient;
 import com.gargoylesoftware.htmlunit.WebWindow;
@@ -52,6 +53,16 @@ public class HUQuery implements AutoCloseable {
     
     public HUQuery debug(File file) {
         webClient.setWebConnection(dwc = new DebuggingWebConnection(webClient.getWebConnection(), file));
+        return this;
+    }
+    
+    public HUQuery noScript() {
+        webClient.getOptions().setJavaScriptEnabled(false);
+        return this;
+    }
+    
+    public HUQuery noCss() {
+        webClient.getOptions().setCssEnabled(false);
         return this;
     }
     
@@ -121,5 +132,15 @@ public class HUQuery implements AutoCloseable {
     }
 
     public boolean filterLatin = true;
+
+    public void silent() {
+        webClient.setIncorrectnessListener((m, o) -> {});
+        webClient.setJavaScriptErrorListener(new SilentJavaScriptErrorListener());
+        webClient.setAlertHandler((p, m) -> {});
+        webClient.setAppletConfirmHandler((a) -> true);
+        webClient.setConfirmHandler((p, m) -> true);
+        webClient.setCssErrorHandler(new SilentCssErrorHandler());
+        webClient.setHTMLParserListener(null);
+    }
     
 }
