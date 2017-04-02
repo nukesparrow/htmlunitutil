@@ -71,7 +71,20 @@ public class HUQueryElements<Elem extends HtmlElement> implements Iterable<HUQue
         return elements.get(0);
     }
     
+    public Elem e(int index) {
+        return elements.get(index >= 0 ? index : elements.size() + index);
+    }
+    
     public void click() {
+        try {
+            e().click();
+            w.q.waitJavascript();
+        } catch (IOException ex) {
+            throw new HUQueryException(ex);
+        }
+    }
+
+    public void click(int index) {
         try {
             e().click();
             w.q.waitJavascript();
