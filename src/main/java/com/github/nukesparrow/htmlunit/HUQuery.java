@@ -43,6 +43,8 @@ public class HUQuery implements AutoCloseable {
 
     public HUQuery(WebClient webClient) {
         this.webClient = webClient;
+        
+        webClient.getOptions().setThrowExceptionOnScriptError(false);
 
         try {
             webClient.getWebConnection().close();
@@ -55,6 +57,7 @@ public class HUQuery implements AutoCloseable {
             public WebResponse getResponse(WebRequest request) throws IOException {
                 
                 if (shouldBlockWebRequest(request.getUrl())) {
+                    mark("Blocked: " + request.getUrl());
                     return new StringWebResponse("", request.getUrl());
                 }
                 
@@ -65,7 +68,7 @@ public class HUQuery implements AutoCloseable {
     }
 
     public HUQuery() {
-        this.webClient = new WebClient();
+        this(new WebClient());
     }
     
     protected HashSet<Function<URL, Boolean>> webRequestBlockers = new LinkedHashSet<Function<URL, Boolean>>();
