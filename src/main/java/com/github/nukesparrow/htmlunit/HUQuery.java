@@ -68,8 +68,14 @@ public class HUQuery implements AutoCloseable {
             public WebResponse getResponse(WebRequest request) throws IOException {
                 
                 if (shouldBlockWebRequest(request.getUrl())) {
-                    mark("Blocked: " + request.getUrl());
-                    return new StringWebResponse("", request.getUrl());
+                    return new StringWebResponse("", request.getUrl()) {
+
+                        @Override
+                        public String getStatusMessage() {
+                            return "Blocked";
+                        }
+
+                    };
                 }
                 
                 return super.getResponse(request);
