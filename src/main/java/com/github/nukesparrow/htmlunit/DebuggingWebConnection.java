@@ -559,6 +559,34 @@ public class DebuggingWebConnection implements WebConnection {
         return mapBuilderBaseData().map;
     }
     
+    public void logExtraDataEvent(String typeString, String desc, String... extraData) {
+        if ((extraData.length & 1) == 1)
+            throw new IllegalArgumentException(""+extraData.length);
+        
+        Map<String, Object> event = createEvent();
+        
+        ArrayList<Map> extraDataArr = new ArrayList<>();
+        
+        event.put("extraData", extraDataArr);
+        
+        for(int i = 0; i < extraData.length - 1; i++) {
+            Map m = new LinkedHashMap();
+            
+            m.put("caption", extraData[i]);
+            m.put("text", extraData[i + 1]);
+            
+            extraDataArr.add(m);
+        }
+        
+        logEvent(event, typeString, desc);
+    }
+
+    public void logEvent(Map<String, Object> event, String typeString, String mark) {
+        event.put("typeString", typeString);
+        event.put("mark", mark);
+        logEvent(event);
+    }
+
     public void logEvent(Map<String, Object> event) {
         events.add(event);
         autoSaveLog();

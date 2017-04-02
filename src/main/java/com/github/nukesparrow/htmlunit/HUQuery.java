@@ -25,8 +25,10 @@ import com.gargoylesoftware.htmlunit.WebResponse;
 import com.gargoylesoftware.htmlunit.WebResponseData;
 import com.gargoylesoftware.htmlunit.WebWindow;
 import com.gargoylesoftware.htmlunit.html.DomNode;
+import com.gargoylesoftware.htmlunit.html.HTMLParserListener;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import com.gargoylesoftware.htmlunit.javascript.JavaScriptEngine;
+import com.gargoylesoftware.htmlunit.javascript.JavaScriptErrorListener;
 import com.gargoylesoftware.htmlunit.javascript.background.JavaScriptExecutor;
 import com.gargoylesoftware.htmlunit.util.NameValuePair;
 import java.io.File;
@@ -50,6 +52,9 @@ import net.sourceforge.htmlunit.corejs.javascript.ContextFactory;
 import net.sourceforge.htmlunit.corejs.javascript.Decompiler;
 import net.sourceforge.htmlunit.corejs.javascript.Script;
 import net.sourceforge.htmlunit.corejs.javascript.Scriptable;
+import org.w3c.css.sac.CSSException;
+import org.w3c.css.sac.CSSParseException;
+import org.w3c.css.sac.ErrorHandler;
 
 /**
  *
@@ -159,6 +164,35 @@ public class HUQuery implements AutoCloseable {
 
     DebuggingWebConnection dwc = null;
     
+    private void logScriptEvent(String message, HtmlPage page, Map<String, Object> scriptEvent) {
+        Map<String, Object> event = dwc.createEvent();
+        event.put("mark", message == null ? "JavaScript Event" : message);
+        event.put("script", scriptEvent);
+        dwc.logEvent(event);
+    }
+            
+    private void uncompressJavaScript(final String scriptSource, Map<String, Object> scriptEvent) {
+
+        final ContextFactory factory = new ContextFactory();
+        final ContextAction action = new ContextAction() {
+            public Object run(final Context cx) {
+                cx.setOptimizationLevel(-1);
+                final Script script = cx.compileString(scriptSource, "script", 0, null);
+                return cx.decompileScript(script, 4);
+            }
+        };
+
+        try {
+            final String decompileScript = (String) factory.call(action);
+
+            scriptEvent.put("beautifulized", decompileScript);
+        }
+        catch (final Exception e) {
+
+            scriptEvent.put("beautifulizerError", e.toString());
+        }
+    }
+
     private void setupDebug() {
         JavaScriptExecutor x = webClient.getJavaScriptEngine().getJavaScriptExecutor();
         if (x != null) {
@@ -166,35 +200,6 @@ public class HUQuery implements AutoCloseable {
         }
         webClient.setJavaScriptEngine(new JavaScriptEngine(webClient) {
             
-            private void logScriptEvent(String message, HtmlPage page, Map<String, Object> scriptEvent) {
-                Map<String, Object> event = dwc.createEvent();
-                event.put("mark", message == null ? "JavaScript Event" : message);
-                event.put("script", scriptEvent);
-                dwc.logEvent(event);
-            }
-            
-            private void uncompressJavaScript(final String scriptSource, Map<String, Object> scriptEvent) {
-
-                final ContextFactory factory = new ContextFactory();
-                final ContextAction action = new ContextAction() {
-                    public Object run(final Context cx) {
-                        cx.setOptimizationLevel(-1);
-                        final Script script = cx.compileString(scriptSource, "script", 0, null);
-                        return cx.decompileScript(script, 4);
-                    }
-                };
-
-                try {
-                    final String decompileScript = (String) factory.call(action);
-                    
-                    scriptEvent.put("beautifulized", decompileScript);
-                }
-                catch (final Exception e) {
-                    
-                    scriptEvent.put("beautifulizerError", e.toString());
-                }
-            }
-
             @Override
             public Object callFunction(HtmlPage page, net.sourceforge.htmlunit.corejs.javascript.Function function, Scriptable scope, Scriptable thisObject, Object[] args) {
                 logScriptEvent("JavaScript: callFunction", page, new LinkedHashMap() {{
@@ -220,19 +225,6 @@ public class HUQuery implements AutoCloseable {
             }
 
             @Override
-            protected void handleJavaScriptException(ScriptException scriptException, boolean triggerOnError) {
-                logScriptEvent("JavaScript: handleJavaScriptException", null, new LinkedHashMap() {{
-                    put("scriptException", scriptException.toString());
-                    put("triggerOnError", triggerOnError);
-                    put("failingLineNumber", scriptException.getFailingLineNumber());
-                    put("failingColumnNumber", scriptException.getFailingColumnNumber());
-                    put("failingLine", scriptException.getFailingLine());
-                    put("sourceCode", scriptException.getScriptSourceCode());
-                }});
-                super.handleJavaScriptException(scriptException, triggerOnError);
-            }
-
-            @Override
             public Script compile(HtmlPage owningPage, Scriptable scope, String sourceCode, String sourceName, int startLine) {
                 Map<String, Object> scriptEvent = null;
                 if (!sourceCode.trim().isEmpty()) {
@@ -251,6 +243,82 @@ public class HUQuery implements AutoCloseable {
             }
 
         });
+
+        webClient.setIncorrectnessListener((message, origin) -> dwc.logExtraDataEvent("Incorrect HTML", message, "Origin", String.valueOf(origin)));
+        webClient.setJavaScriptErrorListener(new JavaScriptErrorListener() {
+            @Override
+            public void scriptException(HtmlPage page, ScriptException scriptException) {
+                logScriptEvent("JavaScript: scriptException", page, new LinkedHashMap() {{
+                    put("scriptException", scriptException.toString());
+                    put("failingLineNumber", scriptException.getFailingLineNumber());
+                    put("failingColumnNumber", scriptException.getFailingColumnNumber());
+                    put("failingLine", scriptException.getFailingLine());
+                    put("sourceCode", scriptException.getScriptSourceCode());
+                }});
+            }
+
+            @Override
+            public void timeoutError(HtmlPage page, long allowedTime, long executionTime) {
+                logScriptEvent("JavaScript: timeoutError", page, new LinkedHashMap() {{
+                    put("allowedTime", allowedTime);
+                    put("executionTime", executionTime);
+                }});
+            }
+
+            @Override
+            public void malformedScriptURL(HtmlPage page, String url, MalformedURLException malformedURLException) {
+                logScriptEvent("JavaScript: malformedScriptURL", page, new LinkedHashMap() {{
+                    put("url", url);
+                    put("exception", malformedURLException.toString());
+                }});
+            }
+
+            @Override
+            public void loadScriptError(HtmlPage page, URL scriptUrl, Exception exception) {
+                logScriptEvent("JavaScript: loadScriptError", page, new LinkedHashMap() {{
+                    put("url", scriptUrl);
+                    put("exception", exception.toString());
+                }});
+            }
+        });
+        webClient.setAlertHandler((page, message) -> dwc.logExtraDataEvent("Alert", message));
+        webClient.setAppletConfirmHandler((a) -> {
+            dwc.logExtraDataEvent("Applet", "Applet confirmation", "HTML", a.asXml());
+            return true;
+        });
+        webClient.setConfirmHandler((page, message) -> {
+            dwc.logExtraDataEvent("Confirmation", "Message: " + message);
+            return true;
+        });
+        webClient.setCssErrorHandler(new ErrorHandler() {
+            @Override
+            public void warning(CSSParseException csspe) throws CSSException {
+                dwc.logExtraDataEvent("CSS", "Warning: " + csspe.getMessage());
+            }
+
+            @Override
+            public void error(CSSParseException csspe) throws CSSException {
+                dwc.logExtraDataEvent("CSS", "Error: " + csspe.getMessage());
+            }
+
+            @Override
+            public void fatalError(CSSParseException csspe) throws CSSException {
+                dwc.logExtraDataEvent("CSS", "Fatal error: " + csspe.getMessage());
+            }
+        });
+
+        webClient.setHTMLParserListener(new HTMLParserListener() {
+            @Override
+            public void error(String message, URL url, String html, int line, int column, String key) {
+                dwc.logExtraDataEvent("HTML", "Error: " + message, "url", ""+url, "html", html, "key", key);
+            }
+
+            @Override
+            public void warning(String message, URL url, String html, int line, int column, String key) {
+                dwc.logExtraDataEvent("HTML", "Warning: " + message, "url", ""+url, "html", html, "key", key);
+            }
+        });
+
     }
     
     public HUQuery debug() {

@@ -835,7 +835,7 @@
                         row.appendChild(createElement("td","Script"));
                         row.appendChild(createElement("td", event.script.scriptException ? "Script Exception: " + event.script.scriptException : event.mark));
                     } else if (event.mark) {
-                        row.appendChild(createElement("td","Mark"));
+                        row.appendChild(createElement("td",event.typeString ? event.typeString : "Mark"));
                         row.appendChild(createElement("td", event.mark));
                     } else {
                         row.appendChild(createElement("td","Other"));
