@@ -49,13 +49,15 @@ public class HUQueryWindow<Window extends WebWindow> implements AutoCloseable {
     public void setOcr(HUOCR ocr) {
         this.ocr = ocr;
     }
+    
+    public HUQueryElements<? extends HtmlElement> e;
 
     public HUQueryElements<? extends HtmlElement> e(String selector) {
-        return new HUQueryElements(this, Util.recursiveSelect((HtmlPage)w.getEnclosedPage(), selector, new ArrayList()));
+        return e = new HUQueryElements(this, Util.recursiveSelect((HtmlPage)w.getEnclosedPage(), selector, new ArrayList()));
     }
 
     public HUQueryElements<? extends HtmlElement> e(HtmlElement e) {
-        return new HUQueryElements(this, e);
+        return this.e = new HUQueryElements(this, e);
     }
     
     public void mark(String mark) {
@@ -88,9 +90,11 @@ public class HUQueryWindow<Window extends WebWindow> implements AutoCloseable {
     public HtmlPage htmlPage() {
         return (HtmlPage) w.getEnclosedPage();
     }
+    
+    public HUQueryElements<?> clickable = null;
 
     public HUQueryElements<?> getClickable() {
-        return new HUQueryElements(this, getClickableElements());
+        return clickable = new HUQueryElements(this, getClickableElements());
     }
 
     public List<HtmlElement> getClickableElements() {
@@ -98,7 +102,7 @@ public class HUQueryWindow<Window extends WebWindow> implements AutoCloseable {
     }
 
     public HUQueryElements<?> getClickable(HtmlElement root) {
-        return new HUQueryElements(this, getClickableElements());
+        return clickable = new HUQueryElements(this, getClickableElements());
     }
 
     public List<HtmlElement> getClickableElements(HtmlElement root) {
