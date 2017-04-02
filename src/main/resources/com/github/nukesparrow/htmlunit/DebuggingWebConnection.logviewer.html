@@ -514,6 +514,9 @@
                     if (script.failingLine) {
                         addTab("Failing Line (" + script.failingLineNumber + ":" + script.failingColumnNumber + ")", true).appendChild(createPreElement(script.failingLine));
                     }
+                    if (script.function) {
+                        addTab("Function", true).appendChild(createPreElement(script.function));
+                    }
                     if (script.compiled) {
                         addTab("Compiled", true).appendChild(createPreElement(script.compiled));
                     }
@@ -526,9 +529,6 @@
                     if (script.sourceCode) {
                         addTab("Source Code", true).appendChild(createPreElement(script.sourceCode));
                     }
-                    if (script.function) {
-                        addTab("Function", true).appendChild(createPreElement(script.function));
-                    }
                     if (script.sourceName) {
                         addTab("Location").appendChild(createPreElement(script.sourceName + ":" + script.startLine));
                     }
@@ -537,6 +537,9 @@
                     }
                     if (script.thisObject) {
                         addTab("this Object").appendChild(createPreElement(script.thisObject));
+                    }
+                    if (script.thisObjectHtml) {
+                        addTab("this Object HTML").appendChild(createPreElement(script.thisObjectHtml));
                     }
                     if (script.args) {
                         addTab("args").appendChild(createPreElement(script.args));
@@ -724,6 +727,10 @@
 
                 if (event.mark) {
                     addTab("Mark", true).appendChild(createElement("pre", event.mark));
+                }
+
+                if (event.html) {
+                    addTab("Mark", true).appendChild(createElement("pre", event.html));
                 }
 
                 if (event.textData) {

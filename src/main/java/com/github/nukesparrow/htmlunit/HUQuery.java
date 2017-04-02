@@ -22,15 +22,18 @@ import com.gargoylesoftware.htmlunit.TopLevelWindow;
 import com.gargoylesoftware.htmlunit.WebClient;
 import com.gargoylesoftware.htmlunit.WebRequest;
 import com.gargoylesoftware.htmlunit.WebResponse;
-import com.gargoylesoftware.htmlunit.WebResponseData;
 import com.gargoylesoftware.htmlunit.WebWindow;
+import com.gargoylesoftware.htmlunit.html.DomElement;
 import com.gargoylesoftware.htmlunit.html.DomNode;
 import com.gargoylesoftware.htmlunit.html.HTMLParserListener;
+import com.gargoylesoftware.htmlunit.html.HtmlElement;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
+import com.gargoylesoftware.htmlunit.html.HtmlScript;
 import com.gargoylesoftware.htmlunit.javascript.JavaScriptEngine;
 import com.gargoylesoftware.htmlunit.javascript.JavaScriptErrorListener;
 import com.gargoylesoftware.htmlunit.javascript.background.JavaScriptExecutor;
-import com.gargoylesoftware.htmlunit.util.NameValuePair;
+import com.gargoylesoftware.htmlunit.javascript.host.html.HTMLElement;
+import com.gargoylesoftware.htmlunit.javascript.host.html.HTMLScriptElement;
 import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
@@ -41,15 +44,12 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
-import java.util.logging.Level;
 import net.sourceforge.htmlunit.corejs.javascript.Context;
 import net.sourceforge.htmlunit.corejs.javascript.ContextAction;
 import net.sourceforge.htmlunit.corejs.javascript.ContextFactory;
-import net.sourceforge.htmlunit.corejs.javascript.Decompiler;
 import net.sourceforge.htmlunit.corejs.javascript.Script;
 import net.sourceforge.htmlunit.corejs.javascript.Scriptable;
 import org.w3c.css.sac.CSSException;
@@ -94,6 +94,21 @@ public class HUQuery implements AutoCloseable {
             }
 
         });
+
+        JavaScriptExecutor x = webClient.getJavaScriptEngine().getJavaScriptExecutor();
+        if (x != null) {
+            x.shutdown();
+        }
+
+        webClient.setJavaScriptEngine(new JavaScriptEngine(webClient) {
+            
+            @Override
+            public Script compile(HtmlPage owningPage, Scriptable scope, String sourceCode, String sourceName, int startLine) {
+                return super.compile(owningPage, scope, preProcessScript(sourceCode), sourceName, startLine);
+            }
+
+        });
+
     }
 
     public HUQuery() {
@@ -192,6 +207,23 @@ public class HUQuery implements AutoCloseable {
             scriptEvent.put("beautifulizerError", e.toString());
         }
     }
+    
+    private Collection<Function<String, String>> scriptPreProcessors = new ArrayList<>();
+
+    public void addScriptPreProcessor(Function<String, String> scriptPreProcessor) {
+        scriptPreProcessors.add(scriptPreProcessor);
+    }
+    
+    private String preProcessScript(String sourceCode) {
+        for (Function<String, String> pp : scriptPreProcessors) {
+            final String s = sourceCode;
+            logScriptEvent("JavaScript: pre-processing script", null, new LinkedHashMap() {{
+                put("sourceCode", s);
+            }});
+            sourceCode = pp.apply(sourceCode);
+        }
+        return sourceCode;
+    }
 
     private void setupDebug() {
         JavaScriptExecutor x = webClient.getJavaScriptEngine().getJavaScriptExecutor();
@@ -205,6 +237,17 @@ public class HUQuery implements AutoCloseable {
                 logScriptEvent("JavaScript: callFunction", page, new LinkedHashMap() {{
                     put("function", function.toString());
                     put("scope", scope.toString());
+
+                    if (thisObject instanceof HTMLElement) {
+                        HtmlElement n = ((HTMLElement)thisObject).getDomNodeOrNull();
+                        if (n != null) {
+                            if (n instanceof HtmlScript) {
+                                put("sourceCode", ((HtmlScript)n).getTextContent());
+                            }
+                            put("thisObjectHtml", n.asXml());
+                        }
+                    }
+
                     put("thisObject", thisObject.toString());
                     put("args", args.toString());
                 }});
@@ -225,17 +268,21 @@ public class HUQuery implements AutoCloseable {
             }
 
             @Override
-            public Script compile(HtmlPage owningPage, Scriptable scope, String sourceCode, String sourceName, int startLine) {
+            public Script compile(HtmlPage owningPage, Scriptable scope, String sourceCode_, String sourceName, int startLine) {
+                
+                sourceCode_ = preProcessScript(sourceCode_);
+                String sourceCode = sourceCode_;
+                
                 Map<String, Object> scriptEvent = null;
-                if (!sourceCode.trim().isEmpty()) {
-                    logScriptEvent("JavaScript: compile" + (sourceCode.trim().isEmpty() ? ": Empty script" : ""), owningPage, scriptEvent = new ConcurrentHashMap() {{
+                if (!sourceCode_.trim().isEmpty()) {
+                    logScriptEvent("JavaScript: compile" + (sourceCode_.trim().isEmpty() ? ": Empty script" : ""), owningPage, scriptEvent = new ConcurrentHashMap() {{
                         put("scope", scope.toString());
                         put("sourceCode", sourceCode);
                         put("sourceName", sourceName);
                         put("startLine", startLine);
                     }});
                 }
-                Script s = super.compile(owningPage, scope, sourceCode, sourceName, startLine);
+                Script s = super.compile(owningPage, scope, sourceCode_, sourceName, startLine);
                 if (scriptEvent != null && s != null) {
                     scriptEvent.put("compiled", s.toString());
                 }
@@ -244,7 +291,9 @@ public class HUQuery implements AutoCloseable {
 
         });
 
-        webClient.setIncorrectnessListener((message, origin) -> dwc.logExtraDataEvent("Incorrect HTML", message, "Origin", String.valueOf(origin)));
+        webClient.setIncorrectnessListener((message, origin) -> {
+            //dwc.logExtraDataEvent("Incorrect HTML", message, "Origin", String.valueOf(origin));
+        });
         webClient.setJavaScriptErrorListener(new JavaScriptErrorListener() {
             @Override
             public void scriptException(HtmlPage page, ScriptException scriptException) {
@@ -293,12 +342,12 @@ public class HUQuery implements AutoCloseable {
         webClient.setCssErrorHandler(new ErrorHandler() {
             @Override
             public void warning(CSSParseException csspe) throws CSSException {
-                dwc.logExtraDataEvent("CSS", "Warning: " + csspe.getMessage());
+                //dwc.logExtraDataEvent("CSS", "Warning: " + csspe.getMessage());
             }
 
             @Override
             public void error(CSSParseException csspe) throws CSSException {
-                dwc.logExtraDataEvent("CSS", "Error: " + csspe.getMessage());
+                //dwc.logExtraDataEvent("CSS", "Error: " + csspe.getMessage());
             }
 
             @Override
@@ -310,15 +359,15 @@ public class HUQuery implements AutoCloseable {
         webClient.setHTMLParserListener(new HTMLParserListener() {
             @Override
             public void error(String message, URL url, String html, int line, int column, String key) {
-                dwc.logExtraDataEvent("HTML", "Error: " + message, "url", ""+url, "html", html, "key", key);
+                //dwc.logExtraDataEvent("HTML", "Error: " + message, "url", ""+url, "html", html, "key", key);
             }
 
             @Override
             public void warning(String message, URL url, String html, int line, int column, String key) {
-                dwc.logExtraDataEvent("HTML", "Warning: " + message, "url", ""+url, "html", html, "key", key);
+                //dwc.logExtraDataEvent("HTML", "Warning: " + message, "url", ""+url, "html", html, "key", key);
             }
         });
-
+        
     }
     
     public HUQuery debug() {

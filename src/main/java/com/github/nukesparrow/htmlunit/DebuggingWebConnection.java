@@ -320,7 +320,7 @@ public class DebuggingWebConnection implements WebConnection {
         wrapped.close();
     }
 
-    protected static Map boxThrowable(Throwable ex) {
+    public static Map eventBoxThrowable(Throwable ex) {
         Map m = new LinkedHashMap();
         m.put("time", System.currentTimeMillis());
         m.put("message", ex.getMessage());
@@ -393,7 +393,7 @@ public class DebuggingWebConnection implements WebConnection {
             response = wrapped.getResponse(request);
         } catch (IOException | RuntimeException ex) {
             synchronized (event) {
-                event.put("error", boxThrowable(ex));
+                event.put("error", eventBoxThrowable(ex));
             }
             autoSaveLog();
             
@@ -528,7 +528,7 @@ public class DebuggingWebConnection implements WebConnection {
         m.put("mark", mark);
 
         if (error != null)
-            m.put("error", boxThrowable(error));
+            m.put("error", eventBoxThrowable(error));
         if (page != null && page instanceof HtmlPage) {
             try {
                 String pageDataUrl = null;
