@@ -207,28 +207,6 @@ public class HUQuery implements AutoCloseable {
             }
 
             @Override
-            public Object callFunction(HtmlPage page, net.sourceforge.htmlunit.corejs.javascript.Function javaScriptFunction, Scriptable thisObject, Object[] args, DomNode node) {
-                logScriptEvent("JavaScript: callFunction", page, new LinkedHashMap() {{
-                    put("function", javaScriptFunction.toString());
-                    put("thisObject", thisObject.toString());
-                    put("args", args.toString());
-                    if (node != null) {
-                        put("node", node.toString());
-                    }
-                }});
-
-                final Scriptable scope;
-                if (node != null) {
-                    scope = node.getScriptableObject();
-                }
-                else {
-                    scope = page.getEnclosingWindow().getScriptableObject();
-                }
-
-                return super.callFunction(page, javaScriptFunction, scope, thisObject, args);
-            }
-
-            @Override
             public Object execute(HtmlPage page, Scriptable scope, Script script) {
                 String sourceCode = script.toString();
                 if (!sourceCode.trim().isEmpty()) {
@@ -239,31 +217,6 @@ public class HUQuery implements AutoCloseable {
                     }});
                 }
                 return super.execute(page, scope, script);
-            }
-
-            @Override
-            public Object execute(HtmlPage page, Script script) {
-                String sourceCode = script.toString();
-                if (!sourceCode.trim().isEmpty()) {
-                    logScriptEvent("JavaScript: execute" + (sourceCode.trim().isEmpty() ? ": Empty script" : ""), page, new LinkedHashMap() {{
-                        put("script", sourceCode);
-                        uncompressJavaScript(sourceCode, this);
-                    }});
-                }
-                return super.execute(page, script);
-            }
-
-            @Override
-            public Object execute(HtmlPage page, String sourceCode, String sourceName, int startLine) {
-                if (!sourceCode.trim().isEmpty()) {
-                    logScriptEvent("JavaScript: execute" + (sourceCode.trim().isEmpty() ? ": Empty script" : ""), page, new LinkedHashMap() {{
-                        put("sourceCode", sourceCode);
-                        put("sourceName", sourceName);
-                        put("startLine", startLine);
-                        uncompressJavaScript(sourceCode, this);
-                    }});
-                }
-                return super.execute(page, sourceCode, sourceName, startLine);
             }
 
             @Override
@@ -291,23 +244,6 @@ public class HUQuery implements AutoCloseable {
                     }});
                 }
                 Script s = super.compile(owningPage, scope, sourceCode, sourceName, startLine);
-                if (scriptEvent != null && s != null) {
-                    scriptEvent.put("compiled", s.toString());
-                }
-                return s;
-            }
-
-            @Override
-            public Script compile(HtmlPage page, String sourceCode, String sourceName, int startLine) {
-                Map<String, Object> scriptEvent = null;
-                if (!sourceCode.trim().isEmpty()) {
-                    logScriptEvent("JavaScript: compile" + (sourceCode.trim().isEmpty() ? ": Empty script" : ""), page, scriptEvent = new ConcurrentHashMap() {{
-                        put("sourceCode", sourceCode);
-                        put("sourceName", sourceName);
-                        put("startLine", startLine);
-                    }});
-                }
-                Script s = super.compile(page, sourceCode, sourceName, startLine);
                 if (scriptEvent != null && s != null) {
                     scriptEvent.put("compiled", s.toString());
                 }
