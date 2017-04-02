@@ -511,8 +511,14 @@
                 if (event.script) {
                     var script = event.script;
                     
+                    if (script.failingLine) {
+                        addTab("Failing Line (" + script.failingLineNumber + ":" + script.failingColumnNumber + ")", true).appendChild(createPreElement(script.failingLine));
+                    }
                     if (script.compiled) {
                         addTab("Compiled", true).appendChild(createPreElement(script.compiled));
+                    }
+                    if (script.beautifulized) {
+                        addTab("Compiled", true).appendChild(createPreElement(script.beautifulized));
                     }
                     if (script.script) {
                         addTab("Source Code", true).appendChild(createPreElement(script.script));

@@ -22,24 +22,31 @@ import com.gargoylesoftware.htmlunit.TopLevelWindow;
 import com.gargoylesoftware.htmlunit.WebClient;
 import com.gargoylesoftware.htmlunit.WebRequest;
 import com.gargoylesoftware.htmlunit.WebResponse;
+import com.gargoylesoftware.htmlunit.WebResponseData;
 import com.gargoylesoftware.htmlunit.WebWindow;
 import com.gargoylesoftware.htmlunit.html.DomNode;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import com.gargoylesoftware.htmlunit.javascript.JavaScriptEngine;
 import com.gargoylesoftware.htmlunit.javascript.background.JavaScriptExecutor;
+import com.gargoylesoftware.htmlunit.util.NameValuePair;
 import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.logging.Level;
+import net.sourceforge.htmlunit.corejs.javascript.Context;
+import net.sourceforge.htmlunit.corejs.javascript.ContextAction;
+import net.sourceforge.htmlunit.corejs.javascript.ContextFactory;
 import net.sourceforge.htmlunit.corejs.javascript.Decompiler;
 import net.sourceforge.htmlunit.corejs.javascript.Script;
 import net.sourceforge.htmlunit.corejs.javascript.Scriptable;
@@ -166,6 +173,28 @@ public class HUQuery implements AutoCloseable {
                 dwc.logEvent(event);
             }
             
+            private void uncompressJavaScript(final String scriptSource, Map<String, Object> scriptEvent) {
+
+                final ContextFactory factory = new ContextFactory();
+                final ContextAction action = new ContextAction() {
+                    public Object run(final Context cx) {
+                        cx.setOptimizationLevel(-1);
+                        final Script script = cx.compileString(scriptSource, "script", 0, null);
+                        return cx.decompileScript(script, 4);
+                    }
+                };
+
+                try {
+                    final String decompileScript = (String) factory.call(action);
+                    
+                    scriptEvent.put("beautifulized", decompileScript);
+                }
+                catch (final Exception e) {
+                    
+                    scriptEvent.put("beautifulizerError", e.toString());
+                }
+            }
+
             @Override
             public Object callFunction(HtmlPage page, net.sourceforge.htmlunit.corejs.javascript.Function function, Scriptable scope, Scriptable thisObject, Object[] args) {
                 logScriptEvent("JavaScript: callFunction", page, new LinkedHashMap() {{
@@ -183,9 +212,20 @@ public class HUQuery implements AutoCloseable {
                     put("function", javaScriptFunction.toString());
                     put("thisObject", thisObject.toString());
                     put("args", args.toString());
-                    put("node", node.toString());
+                    if (node != null) {
+                        put("node", node.toString());
+                    }
                 }});
-                return super.callFunction(page, javaScriptFunction, thisObject, args, node);
+
+                final Scriptable scope;
+                if (node != null) {
+                    scope = node.getScriptableObject();
+                }
+                else {
+                    scope = page.getEnclosingWindow().getScriptableObject();
+                }
+
+                return super.callFunction(page, javaScriptFunction, scope, thisObject, args);
             }
 
             @Override
@@ -195,6 +235,7 @@ public class HUQuery implements AutoCloseable {
                     logScriptEvent("JavaScript: execute" + (sourceCode.trim().isEmpty() ? ": Empty script" : ""), null, new LinkedHashMap() {{
                         put("scope", scope.toString());
                         put("script", sourceCode);
+                        uncompressJavaScript(sourceCode, this);
                     }});
                 }
                 return super.execute(page, scope, script);
@@ -206,6 +247,7 @@ public class HUQuery implements AutoCloseable {
                 if (!sourceCode.trim().isEmpty()) {
                     logScriptEvent("JavaScript: execute" + (sourceCode.trim().isEmpty() ? ": Empty script" : ""), page, new LinkedHashMap() {{
                         put("script", sourceCode);
+                        uncompressJavaScript(sourceCode, this);
                     }});
                 }
                 return super.execute(page, script);
@@ -218,6 +260,7 @@ public class HUQuery implements AutoCloseable {
                         put("sourceCode", sourceCode);
                         put("sourceName", sourceName);
                         put("startLine", startLine);
+                        uncompressJavaScript(sourceCode, this);
                     }});
                 }
                 return super.execute(page, sourceCode, sourceName, startLine);
@@ -228,6 +271,10 @@ public class HUQuery implements AutoCloseable {
                 logScriptEvent("JavaScript: handleJavaScriptException", null, new LinkedHashMap() {{
                     put("scriptException", scriptException.toString());
                     put("triggerOnError", triggerOnError);
+                    put("failingLineNumber", scriptException.getFailingLineNumber());
+                    put("failingColumnNumber", scriptException.getFailingColumnNumber());
+                    put("failingLine", scriptException.getFailingLine());
+                    put("sourceCode", scriptException.getScriptSourceCode());
                 }});
                 super.handleJavaScriptException(scriptException, triggerOnError);
             }
