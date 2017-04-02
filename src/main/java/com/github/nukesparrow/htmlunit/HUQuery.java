@@ -103,7 +103,24 @@ public class HUQuery implements AutoCloseable {
         };
     }
     
-    public HUQuery blockUrls(Function<URL, Boolean>[] blockers) {
+    public HUQuery blockHosts(String... hosts) {
+        for (String host : hosts) {
+            blockHost(host);
+        }
+        return this;
+    }
+
+    public HUQuery blockHost(String host) {
+        blockUrl(domainBlocker(host));
+        return this;
+    }
+
+    public HUQuery blockUrl(Function<URL, Boolean> blocker) {
+        webRequestBlockers.add(blocker);
+        return this;
+    }
+
+    public HUQuery blockUrls(Function<URL, Boolean>... blockers) {
         webRequestBlockers.addAll(Arrays.asList(blockers));
         return this;
     }
@@ -137,6 +154,11 @@ public class HUQuery implements AutoCloseable {
     
     public HUQuery noCss() {
         webClient.getOptions().setCssEnabled(false);
+        return this;
+    }
+    
+    public HUQuery blockPopularJunk() {
+        blockHost("google-analytics.com");
         return this;
     }
     
