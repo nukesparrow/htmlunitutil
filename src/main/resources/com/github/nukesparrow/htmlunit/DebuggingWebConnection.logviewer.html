@@ -434,6 +434,27 @@
   </div>-->
 
         <script type="text/javascript">
+            function valueToHtml(v) {
+                if (v === null)
+                    return "null";
+                if (typeof v === "string")
+                    return v;
+                return v.toString();
+            }
+
+            function createElement(a,b) {
+                var el = document.createElement(a);
+                if (typeof b === "string" && b !== "")
+                    el.appendChild(document.createTextNode(b));
+                else if (typeof b === "object")
+                    el.appendChild(b);
+                return el;
+            }
+
+            function createPreElement(text) {
+                return createElement("pre", text);
+            }
+                
             function selectEvent(event) {
                 var container = document.getElementById("content");
                 container.innerHTML = "";
@@ -485,27 +506,6 @@
                     }
                     
                     return e;
-                }
-                
-                function valueToHtml(v) {
-                    if (v === null)
-                        return "null";
-                    if (typeof v === "string")
-                        return v;
-                    return v.toString();
-                }
-                
-                function createElement(a,b) {
-                    var el = document.createElement(a);
-                    if (typeof b === "string" && b !== "")
-                        el.appendChild(document.createTextNode(b));
-                    else if (typeof b === "object")
-                        el.appendChild(b);
-                    return el;
-                }
-                
-                function createPreElement(text) {
-                    return createElement("pre", text);
                 }
                 
                 if (event.script) {
@@ -769,16 +769,6 @@
                     }
                 };
 
-                function el(a,b) {
-                    var el = document.createElement(a);
-                    if (typeof b === "string" && b !== "")
-                        el.appendChild(document.createTextNode(b));
-                    else if (typeof b === "object")
-                        el.appendChild(b);
-                    return el;
-                }
-
-                var el;
                 var table = document.createElement("table");
                 table.setAttribute("class","pure-table");
                 document.getElementById("menu").appendChild(table);
@@ -786,7 +776,7 @@
                 var row = document.createElement("tr");
                 
                 ["#","Time","Type","URL/Message"].forEach(function(e) {
-                    row.appendChild(el("th", e));
+                    row.appendChild(createElement("th", e));
                     
                 });
                 
@@ -812,37 +802,37 @@
                     
                     var idx = ""+ ++index;
                     if (event.pageUrl) {
-                        idx = el("a", idx);
+                        idx = createElement("a", idx);
                         idx.setAttribute("href", event.pageUrl);
                         idx.setAttribute("target", "_blank");
                     }
                     
-                    row.appendChild(el("td",idx));
-                    row.appendChild(el("td","+"+((event.time - start) / 1000)));
+                    row.appendChild(createElement("td",idx));
+                    row.appendChild(createElement("td","+"+((event.time - start) / 1000)));
                     
                     if (event.request) {
-                        row.appendChild(el("td","HTTP"));
+                        row.appendChild(createElement("td","HTTP"));
                         if (event.response) {
                             var a = event.response.statusCode + " " + event.response.statusMessage;
                             if (event.response.contentUrl) {
-                                a = el("a",a);
+                                a = createElement("a",a);
                                 a.setAttribute("href", event.response.contentUrl);
                                 a.setAttribute("target", "_blank");
                             }
-                            var td = el("td", event.request.url + " ");
+                            var td = createElement("td", event.request.url + " ");
                             td.appendChild(a);
                             row.appendChild(td);
                         } else if (event.error) {
-                            row.appendChild(el("td",event.error.message));
+                            row.appendChild(createElement("td",event.error.message));
                         }
                     } else if (event.script) {
-                        row.appendChild(el("td","Script"));
-                        row.appendChild(el("td", event.script.scriptException ? "Script Exception: " + event.script.scriptException : event.mark));
+                        row.appendChild(createElement("td","Script"));
+                        row.appendChild(createElement("td", event.script.scriptException ? "Script Exception: " + event.script.scriptException : event.mark));
                     } else if (event.mark) {
-                        row.appendChild(el("td","Mark"));
-                        row.appendChild(el("td", event.mark));
+                        row.appendChild(createElement("td","Mark"));
+                        row.appendChild(createElement("td", event.mark));
                     } else {
-                        row.appendChild(el("td","Other"));
+                        row.appendChild(createElement("td","Other"));
                         
                     }
                     

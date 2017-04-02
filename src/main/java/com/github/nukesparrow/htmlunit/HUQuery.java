@@ -226,7 +226,7 @@ public class HUQuery implements AutoCloseable {
             @Override
             protected void handleJavaScriptException(ScriptException scriptException, boolean triggerOnError) {
                 logScriptEvent("JavaScript: handleJavaScriptException", null, new LinkedHashMap() {{
-                    put("scriptException", scriptException);
+                    put("scriptException", scriptException.toString());
                     put("triggerOnError", triggerOnError);
                 }});
                 super.handleJavaScriptException(scriptException, triggerOnError);
@@ -367,7 +367,11 @@ public class HUQuery implements AutoCloseable {
     }
 
     public void waitJavascript() {
-        webClient.waitForBackgroundJavaScript(webClient.getOptions().getTimeout());
+        waitJavascript(webClient.getOptions().getTimeout());
+    }
+
+    public void waitJavascript(long duration) {
+        webClient.waitForBackgroundJavaScriptStartingBefore(duration);
     }
 
     public boolean filterLatin = true;
