@@ -30,7 +30,7 @@ import java.util.stream.Stream;
  *
  * @author Nuke Sparrow <nukesparrow@bitmessage.ch>
  */
-public class HUQueryWindow<Window extends WebWindow> {
+public class HUQueryWindow<Window extends WebWindow> implements AutoCloseable {
     
     public final HUQuery q;
     public final Window w;
@@ -51,7 +51,7 @@ public class HUQueryWindow<Window extends WebWindow> {
     }
 
     public HUQueryElements<? extends HtmlElement> e(String selector) {
-        return new HUQueryElements(this, ((HtmlPage)w.getEnclosedPage()).querySelectorAll(selector));
+        return new HUQueryElements(this, Util.recursiveSelect((HtmlPage)w.getEnclosedPage(), selector, new ArrayList()));
     }
 
     public HUQueryElements<? extends HtmlElement> e(HtmlElement e) {
@@ -68,6 +68,7 @@ public class HUQueryWindow<Window extends WebWindow> {
         }
     }
 
+    @Override
     public void close() {
         if (w instanceof TopLevelWindow)
             ((TopLevelWindow)w).close();

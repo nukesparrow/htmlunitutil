@@ -16,10 +16,14 @@
 package com.github.nukesparrow.htmlunit;
 
 import com.gargoylesoftware.htmlunit.WebResponse;
+import com.gargoylesoftware.htmlunit.html.DomNode;
+import com.gargoylesoftware.htmlunit.html.FrameWindow;
+import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.IOUtils;
@@ -73,4 +77,13 @@ class Util {
         return b.toString();
     }
     
+    public static List<? extends DomNode> recursiveSelect(HtmlPage p, String selector, List<? extends DomNode> selected) {
+        selected.addAll((List)p.querySelectorAll(selector));
+        for (FrameWindow frame : p.getFrames()) {
+            if (frame.getEnclosedPage() instanceof HtmlPage)
+            recursiveSelect((HtmlPage)frame.getEnclosedPage(), selector, selected);
+        }
+        return selected;
+    }
+
 }

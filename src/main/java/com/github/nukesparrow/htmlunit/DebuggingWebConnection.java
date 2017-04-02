@@ -122,6 +122,10 @@ public class DebuggingWebConnection implements WebConnection {
         wrapped = webConnection;
     }
 
+    public WebConnection getWrappedWebConnection() {
+        return wrapped;
+    }
+
     private WebConnection wrapped;
     public final List<Map<String, Object>> events = Collections.synchronizedList(new ArrayList());
 
@@ -138,6 +142,10 @@ public class DebuggingWebConnection implements WebConnection {
 
     public DebuggingWebConnection(WebConnection wrapped, File logFile) {
         this(wrapped);
+        
+        if (logFile.getParentFile() != null) {
+            logFile.getParentFile().mkdirs();
+        }
         
         this.logFile = logFile;
     }

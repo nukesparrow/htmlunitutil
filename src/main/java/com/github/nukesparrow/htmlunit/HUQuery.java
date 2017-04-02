@@ -17,6 +17,7 @@ package com.github.nukesparrow.htmlunit;
 
 import com.gargoylesoftware.htmlunit.TopLevelWindow;
 import com.gargoylesoftware.htmlunit.WebClient;
+import com.gargoylesoftware.htmlunit.WebWindow;
 import java.io.File;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -106,6 +107,13 @@ public class HUQuery implements AutoCloseable {
         }
         
         return open(url);
+    }
+    
+    public HUQueryWindow<WebWindow> currentWindow() {
+        WebWindow w = webClient.getCurrentWindow();
+        if (w == null)
+            return null;
+        return new HUQueryWindow(this, w);
     }
 
     public void waitJavascript() {

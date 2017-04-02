@@ -15,16 +15,21 @@
  */
 package com.github.nukesparrow.htmlunit;
 
+import com.gargoylesoftware.htmlunit.Page;
+import com.gargoylesoftware.htmlunit.html.DomNode;
+import com.gargoylesoftware.htmlunit.html.FrameWindow;
 import com.gargoylesoftware.htmlunit.html.HtmlAnchor;
 import com.gargoylesoftware.htmlunit.html.HtmlArea;
 import com.gargoylesoftware.htmlunit.html.HtmlElement;
 import com.gargoylesoftware.htmlunit.html.HtmlImage;
 import com.gargoylesoftware.htmlunit.html.HtmlOption;
+import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import com.gargoylesoftware.htmlunit.html.HtmlSelect;
 import com.gargoylesoftware.htmlunit.html.SubmittableElement;
 import com.gargoylesoftware.htmlunit.html.impl.SelectableTextInput;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
@@ -59,9 +64,9 @@ public class HUQueryElements<Elem extends HtmlElement> implements Iterable<HUQue
     }
 
     public HUQueryElements<? extends HtmlElement> e(String selector) {
-        return new HUQueryElements(w, e().querySelectorAll(selector));
+        return new HUQueryElements(w, Util.recursiveSelect(w.htmlPage(), selector, new ArrayList()));
     }
-
+    
     public Elem e() {
         return elements.get(0);
     }
@@ -70,6 +75,18 @@ public class HUQueryElements<Elem extends HtmlElement> implements Iterable<HUQue
         try {
             e().click();
             w.q.waitJavascript();
+        } catch (IOException ex) {
+            throw new HUQueryException(ex);
+        }
+    }
+
+    public HUQueryWindow clickOpenNewWindow() {
+        try {
+            HtmlAnchor a;
+            Page p = e().click(true, true, false);
+            HUQueryWindow openedWin = new HUQueryWindow(w.q, p.getEnclosingWindow());
+            openedWin.q.waitJavascript();
+            return openedWin;
         } catch (IOException ex) {
             throw new HUQueryException(ex);
         }
