@@ -15,6 +15,7 @@
  */
 package com.github.nukesparrow.htmlunit;
 
+import com.gargoylesoftware.htmlunit.Page;
 import com.gargoylesoftware.htmlunit.TopLevelWindow;
 import com.gargoylesoftware.htmlunit.WebWindow;
 import com.gargoylesoftware.htmlunit.html.HtmlAnchor;
@@ -22,15 +23,13 @@ import com.gargoylesoftware.htmlunit.html.HtmlArea;
 import com.gargoylesoftware.htmlunit.html.HtmlElement;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
-import java.util.stream.Stream;
 
 /**
  *
  * @author Nuke Sparrow <nukesparrow@bitmessage.ch>
  */
-public class HUQueryWindow<Window extends WebWindow> {
+public class HUQueryWindow<Window extends WebWindow> implements AutoCloseable {
     
     public final HUQuery q;
     public final Window w;
@@ -49,13 +48,15 @@ public class HUQueryWindow<Window extends WebWindow> {
     public void setOcr(HUOCR ocr) {
         this.ocr = ocr;
     }
+    
+    public HUQueryElements<? extends HtmlElement> e;
 
     public HUQueryElements<? extends HtmlElement> e(String selector) {
-        return new HUQueryElements(this, ((HtmlPage)w.getEnclosedPage()).querySelectorAll(selector));
+        return e = new HUQueryElements(this, Util.recursiveSelect((HtmlPage)w.getEnclosedPage(), selector, new ArrayList()));
     }
 
     public HUQueryElements<? extends HtmlElement> e(HtmlElement e) {
-        return new HUQueryElements(this, e);
+        return this.e = new HUQueryElements(this, e);
     }
     
     public void mark(String mark) {
@@ -68,6 +69,21 @@ public class HUQueryWindow<Window extends WebWindow> {
         }
     }
 
+    public void fail(Throwable error) {
+        fail(error, "Error");
+    }
+
+    public void fail(Throwable error, String mark) {
+        if (q.dwc == null)
+            return;
+        if (w.getEnclosedPage() instanceof HtmlPage) {
+            q.dwc.addMark(mark, error, ((HtmlPage)w.getEnclosedPage()));
+        } else {
+            q.dwc.addMark(mark, error);
+        }
+    }
+
+    @Override
     public void close() {
         if (w instanceof TopLevelWindow)
             ((TopLevelWindow)w).close();
@@ -83,13 +99,19 @@ public class HUQueryWindow<Window extends WebWindow> {
             return url.equals(test);
         }
     }
-
-    public HtmlPage htmlPage() {
-        return (HtmlPage) w.getEnclosedPage();
+    
+    public Page p() {
+        return w.getEnclosedPage();
     }
 
+    public HtmlPage htmlPage() {
+        return p().isHtmlPage() ? (HtmlPage) p() : null;
+    }
+    
+    public HUQueryElements<?> clickable = null;
+
     public HUQueryElements<?> getClickable() {
-        return new HUQueryElements(this, getClickableElements());
+        return clickable = new HUQueryElements(this, getClickableElements());
     }
 
     public List<HtmlElement> getClickableElements() {
@@ -97,7 +119,7 @@ public class HUQueryWindow<Window extends WebWindow> {
     }
 
     public HUQueryElements<?> getClickable(HtmlElement root) {
-        return new HUQueryElements(this, getClickableElements());
+        return clickable = new HUQueryElements(this, getClickableElements());
     }
 
     public List<HtmlElement> getClickableElements(HtmlElement root) {

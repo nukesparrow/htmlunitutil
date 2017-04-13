@@ -122,6 +122,10 @@ public class DebuggingWebConnection implements WebConnection {
         wrapped = webConnection;
     }
 
+    public WebConnection getWrappedWebConnection() {
+        return wrapped;
+    }
+
     private WebConnection wrapped;
     public final List<Map<String, Object>> events = Collections.synchronizedList(new ArrayList());
 
@@ -138,6 +142,10 @@ public class DebuggingWebConnection implements WebConnection {
 
     public DebuggingWebConnection(WebConnection wrapped, File logFile) {
         this(wrapped);
+        
+        if (logFile.getParentFile() != null) {
+            logFile.getParentFile().mkdirs();
+        }
         
         this.logFile = logFile;
     }
@@ -312,7 +320,7 @@ public class DebuggingWebConnection implements WebConnection {
         wrapped.close();
     }
 
-    protected static Map boxThrowable(Throwable ex) {
+    public static Map eventBoxThrowable(Throwable ex) {
         Map m = new LinkedHashMap();
         m.put("time", System.currentTimeMillis());
         m.put("message", ex.getMessage());
@@ -385,7 +393,7 @@ public class DebuggingWebConnection implements WebConnection {
             response = wrapped.getResponse(request);
         } catch (IOException | RuntimeException ex) {
             synchronized (event) {
-                event.put("error", boxThrowable(ex));
+                event.put("error", eventBoxThrowable(ex));
             }
             autoSaveLog();
             
@@ -410,7 +418,9 @@ public class DebuggingWebConnection implements WebConnection {
             if (cs != null) {
                 eventResponse.put("contentCharset", cs.toString());
             }
-            eventResponse.put("contentUrl", toDataUrl(response));
+            if (response.getContentLength() < (1024L * 1024L * 4L)) {
+                eventResponse.put("contentUrl", toDataUrl(response));
+            }
 
             if (uncompressJavaScript && isJavaScript(response.getContentType())) {
                 response = uncompressJavaScript(response);
@@ -520,7 +530,7 @@ public class DebuggingWebConnection implements WebConnection {
         m.put("mark", mark);
 
         if (error != null)
-            m.put("error", boxThrowable(error));
+            m.put("error", eventBoxThrowable(error));
         if (page != null && page instanceof HtmlPage) {
             try {
                 String pageDataUrl = null;
@@ -544,7 +554,43 @@ public class DebuggingWebConnection implements WebConnection {
                 }
             }
         }
-        events.add(m);
+        logEvent(m);
+    }
+    
+    public Map<String, Object> createEvent() {
+        return mapBuilderBaseData().map;
+    }
+    
+    public void logExtraDataEvent(String typeString, String desc, String... extraData) {
+        if ((extraData.length & 1) == 1)
+            throw new IllegalArgumentException(""+extraData.length);
+        
+        Map<String, Object> event = createEvent();
+        
+        ArrayList<Map> extraDataArr = new ArrayList<>();
+        
+        event.put("extraData", extraDataArr);
+        
+        for(int i = 0; i < extraData.length - 1; i++) {
+            Map m = new LinkedHashMap();
+            
+            m.put("caption", extraData[i]);
+            m.put("text", extraData[i + 1]);
+            
+            extraDataArr.add(m);
+        }
+        
+        logEvent(event, typeString, desc);
+    }
+
+    public void logEvent(Map<String, Object> event, String typeString, String mark) {
+        event.put("typeString", typeString);
+        event.put("mark", mark);
+        logEvent(event);
+    }
+
+    public void logEvent(Map<String, Object> event) {
+        events.add(event);
         autoSaveLog();
     }
 
@@ -618,7 +664,7 @@ public class DebuggingWebConnection implements WebConnection {
             || (contentType.startsWith("text/") && contentType.endsWith("js"));
     }
 
-    private boolean uncompressJavaScript = true;
+    private boolean uncompressJavaScript = false;
 
     /**
      * Indicates if it should try to format responses recognized as JavaScript.

@@ -434,6 +434,27 @@
   </div>-->
 
         <script type="text/javascript">
+            function valueToHtml(v) {
+                if (v === null)
+                    return "null";
+                if (typeof v === "string")
+                    return v;
+                return v.toString();
+            }
+
+            function createElement(a,b) {
+                var el = document.createElement(a);
+                if (typeof b === "string" && b !== "")
+                    el.appendChild(document.createTextNode(b));
+                else if (typeof b === "object")
+                    el.appendChild(b);
+                return el;
+            }
+
+            function createPreElement(text) {
+                return createElement("pre", text);
+            }
+                
             function selectEvent(event) {
                 var container = document.getElementById("content");
                 container.innerHTML = "";
@@ -487,46 +508,73 @@
                     return e;
                 }
                 
-                function sv(v) {
-                    if (v === null)
-                        return "null";
-                    if (typeof v === "string")
-                        return v;
-                    return v.toString();
-                }
-                
-                function el(a,b) {
-                    var el = document.createElement(a);
-                    if (typeof b === "string" && b !== "")
-                        el.appendChild(document.createTextNode(b));
-                    else if (typeof b === "object")
-                        el.appendChild(b);
-                    return el;
+                if (event.script) {
+                    var script = event.script;
+                    
+                    if (script.failingLine) {
+                        addTab("Failing Line (" + script.failingLineNumber + ":" + script.failingColumnNumber + ")", true).appendChild(createPreElement(script.failingLine));
+                    }
+                    if (script.function) {
+                        addTab("Function", true).appendChild(createPreElement(script.function));
+                    }
+                    if (script.compiled) {
+                        addTab("Compiled", true).appendChild(createPreElement(script.compiled));
+                    }
+                    if (script.beautifulized) {
+                        addTab("Compiled", true).appendChild(createPreElement(script.beautifulized));
+                    }
+                    if (script.script) {
+                        addTab("Source Code", true).appendChild(createPreElement(script.script));
+                    }
+                    if (script.sourceCode) {
+                        addTab("Source Code", true).appendChild(createPreElement(script.sourceCode));
+                    }
+                    if (script.sourceName) {
+                        addTab("Location").appendChild(createPreElement(script.sourceName + ":" + script.startLine));
+                    }
+                    if (script.scope) {
+                        addTab("Scope").appendChild(createPreElement(script.scope));
+                    }
+                    if (script.thisObject) {
+                        addTab("this Object").appendChild(createPreElement(script.thisObject));
+                    }
+                    if (script.thisObjectHtml) {
+                        addTab("this Object HTML").appendChild(createPreElement(script.thisObjectHtml));
+                    }
+                    if (script.args) {
+                        addTab("args").appendChild(createPreElement(script.args));
+                    }
+                    if (script.args) {
+                        addTab("node").appendChild(createPreElement(script.node));
+                    }
+                    if (script.scriptException) {
+                        addTab("Exception").appendChild(createPreElement(script.scriptException));
+                    }
                 }
 
                 if (event.request) {
                     var req = event.request;
                     var t = addTab("Request", true);
                     
-                    t.appendChild(el("h3", req.method + " " + req.url));
+                    t.appendChild(createElement("h3", req.method + " " + req.url));
                     if (req.addtionalHeaders) {
-                        t.appendChild(el("h4", "Addtional headers"));
-                        var table = el("table");
+                        t.appendChild(createElement("h4", "Addtional headers"));
+                        var table = createElement("table");
                         table.setAttribute("class", "pure-table");
                         
-                        var row = el("tr");
-                        row.appendChild(el("th","Header"));
-                        row.appendChild(el("th","Value"));
+                        var row = createElement("tr");
+                        row.appendChild(createElement("th","Header"));
+                        row.appendChild(createElement("th","Value"));
                         table.appendChild(row);
                         
                         var odd = true;
                         for(var k in req.addtionalHeaders) {
-                            var row = el("tr");
+                            var row = createElement("tr");
                             if (odd) {
                                 row.setAttribute("class", "pure-table-odd");
                             }
-                            row.appendChild(el("td",k));
-                            row.appendChild(el("td",req.addtionalHeaders[k]));
+                            row.appendChild(createElement("td",k));
+                            row.appendChild(createElement("td",req.addtionalHeaders[k]));
                             table.appendChild(row);
                             
                             odd = !odd;
@@ -536,25 +584,25 @@
                     }
                     
                     if (req.requestParameters) {
-                        t.appendChild(el("h4", "Request parameters"));
+                        t.appendChild(createElement("h4", "Request parameters"));
 
-                        var table = el("table");
+                        var table = createElement("table");
                         table.setAttribute("class", "pure-table");
                         
-                        var row = el("tr");
-                        row.appendChild(el("th","Header"));
-                        row.appendChild(el("th","Value"));
+                        var row = createElement("tr");
+                        row.appendChild(createElement("th","Header"));
+                        row.appendChild(createElement("th","Value"));
                         table.appendChild(row);
                         
                         var odd = true;
                         for(var i = 0; i < req.requestParameters.length; i++) {
                             var p = req.requestParameters[i];
-                            var row = el("tr");
+                            var row = createElement("tr");
                             if (odd) {
                                 row.setAttribute("class", "pure-table-odd");
                             }
-                            row.appendChild(el("td",p.key));
-                            row.appendChild(el("td",p.value));
+                            row.appendChild(createElement("td",p.key));
+                            row.appendChild(createElement("td",p.value));
                             table.appendChild(row);
                             
                             odd = !odd;
@@ -564,35 +612,35 @@
                     }
                     
                     if (req.cookies) {
-                        t.appendChild(el("h4", "Request Cookies"));
+                        t.appendChild(createElement("h4", "Request Cookies"));
 
-                        var table = el("table");
+                        var table = createElement("table");
                         table.setAttribute("class", "pure-table");
                         
-                        var row = el("tr");
-                        row.appendChild(el("th","Name"));
-                        row.appendChild(el("th","Value"));
-                        row.appendChild(el("th","Domain"));
-                        row.appendChild(el("th","Path"));
-                        row.appendChild(el("th","Expires"));
-                        row.appendChild(el("th","Http Only"));
-                        row.appendChild(el("th","Secure"));
+                        var row = createElement("tr");
+                        row.appendChild(createElement("th","Name"));
+                        row.appendChild(createElement("th","Value"));
+                        row.appendChild(createElement("th","Domain"));
+                        row.appendChild(createElement("th","Path"));
+                        row.appendChild(createElement("th","Expires"));
+                        row.appendChild(createElement("th","Http Only"));
+                        row.appendChild(createElement("th","Secure"));
                         table.appendChild(row);
                         
                         var odd = true;
                         for(var i = 0; i < req.cookies.length; i++) {
                             var p = req.cookies[i];
-                            var row = el("tr");
+                            var row = createElement("tr");
                             if (odd) {
                                 row.setAttribute("class", "pure-table-odd");
                             }
-                            row.appendChild(el("td",sv(p.name)));
-                            row.appendChild(el("td",sv(p.value)));
-                            row.appendChild(el("td",sv(p.domain)));
-                            row.appendChild(el("td",sv(p.path)));
-                            row.appendChild(el("td",sv(p.expires)));
-                            row.appendChild(el("td",sv(p.httponly)));
-                            row.appendChild(el("td",sv(p.secure)));
+                            row.appendChild(createElement("td",valueToHtml(p.name)));
+                            row.appendChild(createElement("td",valueToHtml(p.value)));
+                            row.appendChild(createElement("td",valueToHtml(p.domain)));
+                            row.appendChild(createElement("td",valueToHtml(p.path)));
+                            row.appendChild(createElement("td",valueToHtml(p.expires)));
+                            row.appendChild(createElement("td",valueToHtml(p.httponly)));
+                            row.appendChild(createElement("td",valueToHtml(p.secure)));
                             table.appendChild(row);
                             
                             odd = !odd;
@@ -602,9 +650,9 @@
                     }
                     
                     if (req.body) {
-                        t.appendChild(el("h4", "Request body"));
+                        t.appendChild(createElement("h4", "Request body"));
 
-                        t.appendChild(el("pre", req.body))
+                        t.appendChild(createElement("pre", req.body))
                     }
                 }
                 
@@ -613,25 +661,25 @@
 
                     var t = addTab("Response Headers", true);
                     
-                    t.appendChild(el("h3", "" + resp.statusCode + " " + resp.statusMessage + " (" + (resp.loadtime / 1000) + " sec)"));
+                    t.appendChild(createElement("h3", "" + resp.statusCode + " " + resp.statusMessage + " (" + (resp.loadtime / 1000) + " sec)"));
 
-                    var table = el("table");
+                    var table = createElement("table");
                     table.setAttribute("class", "pure-table");
 
-                    var row = el("tr");
-                    row.appendChild(el("th","Header"));
-                    row.appendChild(el("th","Value"));
+                    var row = createElement("tr");
+                    row.appendChild(createElement("th","Header"));
+                    row.appendChild(createElement("th","Value"));
                     table.appendChild(row);
 
                     var odd = true;
                     for(var i = 0; i < resp.headers.length; i++) {
                         var p = resp.headers[i];
-                        var row = el("tr");
+                        var row = createElement("tr");
                         if (odd) {
                             row.setAttribute("class", "pure-table-odd");
                         }
-                        row.appendChild(el("td",p.key));
-                        row.appendChild(el("td",p.value));
+                        row.appendChild(createElement("td",p.key));
+                        row.appendChild(createElement("td",p.value));
                         table.appendChild(row);
 
                         odd = !odd;
@@ -642,16 +690,16 @@
                     if (resp.contentUncompressed) {
                         t = addTab("Formatted Response");
                         
-                        t.appendChild(el("pre", resp.contentUncompressed));
+                        t.appendChild(createElement("pre", resp.contentUncompressed));
                     }
                     
                     if (resp.contentUrl) {
                         if (resp.contentType.substring(0, "image/".length) == "image/") {
                             t = addTab("Response");
 
-                            var img = el("img");
+                            var img = createElement("img");
                             iframe.setAttribute("src", resp.contentUrl);
-                            t.appendChild(el);
+                            t.appendChild(createElement);
                         }
                         if (((resp.contentType.substring(0, "text/".length) == "text/") || resp.contentType === "application/javascript") && (resp.contentCharset === "UTF-8" || resp.contentCharset === null)) {
                             var data = resp.contentUrl;
@@ -664,8 +712,7 @@
                             }
 
                             if (data) {
-                                t = addTab("Response");
-                                t.appendChild(el("pre", data));
+                                addTab("Response").appendChild(createElement("pre", data));
                             }
                         }
                     }
@@ -675,34 +722,32 @@
                 if (event.error) {
                     var err = event.error;
 
-                    var t = addTab("Error", true);
-                    t.appendChild(el("pre", err.stack));
+                    addTab("Error", true).appendChild(createElement("pre", err.stack));
                 }
 
                 if (event.mark) {
-                    var t = addTab("Mark", true);
-                    t.appendChild(el("pre", event.mark));
+                    addTab("Mark", true).appendChild(createElement("pre", event.mark));
+                }
+
+                if (event.html) {
+                    addTab("Mark", true).appendChild(createElement("pre", event.html));
                 }
 
                 if (event.textData) {
-                    var t = addTab(event.dataCaption ? event.dataCaption : "Data", true);
-                    t.appendChild(el("pre", event.textData));
+                    addTab(event.dataCaption ? event.dataCaption : "Data", true).appendChild(createElement("pre", event.textData));
                 }
                 
                 if (event.extraData) {
                     event.extraData.forEach(function(d) {
-                        var t = addTab(d.caption ? d.caption : "Data", true);
-                        t.appendChild(el("pre", d.text));
+                        addTab(d.caption ? d.caption : "Data", true).appendChild(createElement("pre", d.text));
                     });
                 }
 
                 if (event.stack) {
-                    var t = addTab("Stack", true);
-                    t.appendChild(el("pre", event.stack));
+                    addTab("Stack", true).appendChild(createElement("pre", event.stack));
                 }
 
-                var t = addTab("JSON", true);
-                t.appendChild(el("pre", JSON.stringify(event, 4, 4)));
+                addTab("JSON", true).appendChild(createElement("pre", JSON.stringify(event, 4, 4)));
             }
             
             function populateLog() {
@@ -722,6 +767,7 @@
                             }
                         } catch (e) {
                             console.log(e);
+                            window.lastBadEventSource = this.events[index].innerHTML;
                             return {
                                 "mark": "bad event",
                                 "parseError": e.message,
@@ -736,16 +782,6 @@
                     }
                 };
 
-                function el(a,b) {
-                    var el = document.createElement(a);
-                    if (typeof b === "string" && b !== "")
-                        el.appendChild(document.createTextNode(b));
-                    else if (typeof b === "object")
-                        el.appendChild(b);
-                    return el;
-                }
-
-                var el;
                 var table = document.createElement("table");
                 table.setAttribute("class","pure-table");
                 document.getElementById("menu").appendChild(table);
@@ -753,7 +789,7 @@
                 var row = document.createElement("tr");
                 
                 ["#","Time","Type","URL/Message"].forEach(function(e) {
-                    row.appendChild(el("th", e));
+                    row.appendChild(createElement("th", e));
                     
                 });
                 
@@ -779,34 +815,38 @@
                     
                     var idx = ""+ ++index;
                     if (event.pageUrl) {
-                        idx = el("a", idx);
+                        idx = createElement("a", idx);
                         idx.setAttribute("href", event.pageUrl);
                         idx.setAttribute("target", "_blank");
                     }
                     
-                    row.appendChild(el("td",idx));
-                    row.appendChild(el("td","+"+((event.time - start) / 1000)));
+                    row.appendChild(createElement("td",idx));
+                    row.appendChild(createElement("td","+"+((event.time - start) / 1000)));
                     
                     if (event.request) {
-                        row.appendChild(el("td","HTTP"));
+                        row.appendChild(createElement("td","HTTP"));
                         if (event.response) {
                             var a = event.response.statusCode + " " + event.response.statusMessage;
                             if (event.response.contentUrl) {
-                                a = el("a",a);
+                                a = createElement("a",a);
                                 a.setAttribute("href", event.response.contentUrl);
                                 a.setAttribute("target", "_blank");
                             }
-                            var td = el("td", event.request.url + " ");
+                            var td = createElement("td", event.request.url + " ");
                             td.appendChild(a);
                             row.appendChild(td);
                         } else if (event.error) {
-                            row.appendChild(el("td",event.error.message));
+                            row.appendChild(createElement("td",event.error.message));
                         }
+                    } else if (event.script) {
+                        row.appendChild(createElement("td","Script"));
+                        var sn = event.script.sourceName ? event.script.sourceName + ":" + event.script.startLine : "";
+                        row.appendChild(createElement("td", (event.script.scriptException ? "Script Exception: " + event.script.scriptException : event.mark) + (sn == "" ? "" : " ("+sn+")")));
                     } else if (event.mark) {
-                        row.appendChild(el("td","Mark"));
-                        row.appendChild(el("td", event.mark));
+                        row.appendChild(createElement("td",event.typeString ? event.typeString : "Mark"));
+                        row.appendChild(createElement("td", event.mark));
                     } else {
-                        row.appendChild(el("td","Other"));
+                        row.appendChild(createElement("td","Other"));
                         
                     }
                     
