@@ -15,6 +15,7 @@
  */
 package com.github.nukesparrow.htmlunit;
 
+import com.gargoylesoftware.htmlunit.Page;
 import com.gargoylesoftware.htmlunit.TopLevelWindow;
 import com.gargoylesoftware.htmlunit.WebWindow;
 import com.gargoylesoftware.htmlunit.html.HtmlAnchor;
@@ -22,9 +23,7 @@ import com.gargoylesoftware.htmlunit.html.HtmlArea;
 import com.gargoylesoftware.htmlunit.html.HtmlElement;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
-import java.util.stream.Stream;
 
 /**
  *
@@ -70,6 +69,20 @@ public class HUQueryWindow<Window extends WebWindow> implements AutoCloseable {
         }
     }
 
+    public void fail(Throwable error) {
+        fail(error, "Error");
+    }
+
+    public void fail(Throwable error, String mark) {
+        if (q.dwc == null)
+            return;
+        if (w.getEnclosedPage() instanceof HtmlPage) {
+            q.dwc.addMark(mark, error, ((HtmlPage)w.getEnclosedPage()));
+        } else {
+            q.dwc.addMark(mark, error);
+        }
+    }
+
     @Override
     public void close() {
         if (w instanceof TopLevelWindow)
@@ -86,9 +99,13 @@ public class HUQueryWindow<Window extends WebWindow> implements AutoCloseable {
             return url.equals(test);
         }
     }
+    
+    public Page p() {
+        return w.getEnclosedPage();
+    }
 
     public HtmlPage htmlPage() {
-        return (HtmlPage) w.getEnclosedPage();
+        return p().isHtmlPage() ? (HtmlPage) p() : null;
     }
     
     public HUQueryElements<?> clickable = null;

@@ -840,7 +840,8 @@
                         }
                     } else if (event.script) {
                         row.appendChild(createElement("td","Script"));
-                        row.appendChild(createElement("td", event.script.scriptException ? "Script Exception: " + event.script.scriptException : event.mark));
+                        var sn = event.script.sourceName ? event.script.sourceName + ":" + event.script.startLine : "";
+                        row.appendChild(createElement("td", (event.script.scriptException ? "Script Exception: " + event.script.scriptException : event.mark) + (sn == "" ? "" : " ("+sn+")")));
                     } else if (event.mark) {
                         row.appendChild(createElement("td",event.typeString ? event.typeString : "Mark"));
                         row.appendChild(createElement("td", event.mark));

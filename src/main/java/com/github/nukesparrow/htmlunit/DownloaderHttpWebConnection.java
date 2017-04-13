@@ -188,7 +188,7 @@ public class DownloaderHttpWebConnection implements WebConnection {
         final URL url = request.getUrl();
         final HttpClientBuilder builder = reconfigureHttpClientIfNeeded(getHttpClientBuilder());
         final HttpContext httpContext = getHttpContext();
-
+        
         if (connectionManager_ == null) {
             connectionManager_ = createConnectionManager(builder);
         }

@@ -294,8 +294,4 @@ public class HUQueryElements<Elem extends HtmlElement> implements Iterable<HUQue
         return new HUQueryElements(w, elements.subList(1, elements.size()));
     }
 
-    public void download(File file) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-
 }

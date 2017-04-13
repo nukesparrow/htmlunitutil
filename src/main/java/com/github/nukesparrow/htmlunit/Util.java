@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.IOUtils;
 
@@ -50,7 +51,7 @@ class Util {
 
     public static class MapBuilder {
         
-        public final Map map = new LinkedHashMap();
+        public final Map map = new ConcurrentHashMap();
         
         public MapBuilder put(Object k, Object v) {
             map.put(k, v);

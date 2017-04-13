@@ -418,7 +418,9 @@ public class DebuggingWebConnection implements WebConnection {
             if (cs != null) {
                 eventResponse.put("contentCharset", cs.toString());
             }
-            eventResponse.put("contentUrl", toDataUrl(response));
+            if (response.getContentLength() < (1024L * 1024L * 4L)) {
+                eventResponse.put("contentUrl", toDataUrl(response));
+            }
 
             if (uncompressJavaScript && isJavaScript(response.getContentType())) {
                 response = uncompressJavaScript(response);

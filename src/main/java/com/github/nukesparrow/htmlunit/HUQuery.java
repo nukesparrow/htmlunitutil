@@ -15,6 +15,7 @@
  */
 package com.github.nukesparrow.htmlunit;
 
+import com.gargoylesoftware.htmlunit.ProxyConfig;
 import com.gargoylesoftware.htmlunit.ScriptException;
 import com.gargoylesoftware.htmlunit.SilentCssErrorHandler;
 import com.gargoylesoftware.htmlunit.StringWebResponse;
@@ -23,7 +24,6 @@ import com.gargoylesoftware.htmlunit.WebClient;
 import com.gargoylesoftware.htmlunit.WebRequest;
 import com.gargoylesoftware.htmlunit.WebResponse;
 import com.gargoylesoftware.htmlunit.WebWindow;
-import com.gargoylesoftware.htmlunit.html.DomElement;
 import com.gargoylesoftware.htmlunit.html.DomNode;
 import com.gargoylesoftware.htmlunit.html.HTMLParserListener;
 import com.gargoylesoftware.htmlunit.html.HtmlElement;
@@ -33,20 +33,25 @@ import com.gargoylesoftware.htmlunit.javascript.JavaScriptEngine;
 import com.gargoylesoftware.htmlunit.javascript.JavaScriptErrorListener;
 import com.gargoylesoftware.htmlunit.javascript.background.JavaScriptExecutor;
 import com.gargoylesoftware.htmlunit.javascript.host.html.HTMLElement;
-import com.gargoylesoftware.htmlunit.javascript.host.html.HTMLScriptElement;
 import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
+import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import net.sourceforge.htmlunit.corejs.javascript.BaseFunction;
 import net.sourceforge.htmlunit.corejs.javascript.Context;
 import net.sourceforge.htmlunit.corejs.javascript.ContextAction;
@@ -63,9 +68,30 @@ import org.w3c.css.sac.ErrorHandler;
  */
 public class HUQuery implements AutoCloseable {
 
+    private static void disableLoudLogger(String name) {
+        Logger logger = Logger.getLogger(name);
+        logger.setLevel(Level.OFF);
+        logger.setUseParentHandlers(false);
+        logger.setFilter((f) -> false);
+        for (Handler handler : logger.getHandlers()) {
+            logger.removeHandler(handler);
+        }
+    }
+
+    public static void disableLoudLoggers() {
+        disableLoudLogger("com.gargoylesoftware.htmlunit.javascript.host.dom.Document");
+        disableLoudLogger("com.gargoylesoftware.htmlunit.javascript.regexp.HtmlUnitRegExpProxy");
+        disableLoudLogger("com.gargoylesoftware.htmlunit.javascript.JavaScriptEngine");
+        disableLoudLogger("com.gargoylesoftware.htmlunit.javascript.StrictErrorReporter");
+        disableLoudLogger("com.gargoylesoftware.htmlunit.html.HtmlScript");
+        disableLoudLogger("org.apache.http.client.protocol.ResponseProcessCookies");
+        disableLoudLogger("com.gargoylesoftware.htmlunit.WebConsole");
+        disableLoudLogger("com.gargoylesoftware.htmlunit.html.BaseFrameElement");
+    }
+    
     public final WebClient webClient;
     
-    private DownloaderHttpWebConnection downloaderHttpWebConnection;
+    public DownloaderHttpWebConnection downloaderHttpWebConnection;
 
     public HUQuery(WebClient webClient) {
         this.webClient = webClient;
@@ -110,6 +136,32 @@ public class HUQuery implements AutoCloseable {
                 return super.compile(owningPage, scope, preProcessScript(sourceCode), sourceName, startLine);
             }
 
+            @Override
+            public void initialize(WebWindow webWindow) {
+                super.initialize(webWindow);
+                if (initializerScript != null && webWindow.getEnclosedPage() instanceof HtmlPage) {
+                    execute((HtmlPage)webWindow.getEnclosedPage(), initializerScript, "HUQuery Initializer Script", 1);
+                }
+            }
+
+            @Override
+            public Object callFunction(HtmlPage page, net.sourceforge.htmlunit.corejs.javascript.Function function, Scriptable scope, Scriptable thisObject, Object[] args) {
+                try {
+                    return super.callFunction(page, function, scope, thisObject, args);
+                } catch (StackOverflowError err) {
+                    throw new RuntimeException(err);
+                }
+            }
+
+            @Override
+            public Object execute(HtmlPage page, Scriptable scope, Script script) {
+                try {
+                    return super.execute(page, scope, script);
+                } catch (StackOverflowError err) {
+                    throw new RuntimeException(err);
+                }
+            }
+
         });
 
     }
@@ -118,6 +170,13 @@ public class HUQuery implements AutoCloseable {
         this(new WebClient());
     }
     
+    private String initializerScript = null;
+
+    public HUQuery initializerScript(String script) {
+        initializerScript = script;
+        return this;
+    }
+
     protected HashSet<Function<URL, Boolean>> webRequestBlockers = new LinkedHashSet<Function<URL, Boolean>>();
 
     protected boolean shouldBlockWebRequest(URL url) {
@@ -160,6 +219,21 @@ public class HUQuery implements AutoCloseable {
         return this;
     }
 
+    public HUQuery blockAllExceptHosts(String... hosts) {
+        webRequestBlockers.add((url) -> {
+            String urlHost = url.getHost().toLowerCase();
+            
+            for (String host : hosts) {
+                if (host.equals(urlHost) || urlHost.endsWith("." + host)) {
+                    return false;
+                }
+            }
+            
+            return true;
+        });
+        return this;
+    }
+
     public HUQuery blockHost(String host) {
         blockUrl(domainBlocker(host));
         return this;
@@ -182,11 +256,12 @@ public class HUQuery implements AutoCloseable {
 
     DebuggingWebConnection dwc = null;
     
-    private void logScriptEvent(String message, HtmlPage page, Map<String, Object> scriptEvent) {
+    private Map<String, Object> logScriptEvent(String message, HtmlPage page, Map<String, Object> scriptEvent) {
         Map<String, Object> event = dwc.createEvent();
         event.put("mark", message == null ? "JavaScript Event" : message);
         event.put("script", scriptEvent);
         dwc.logEvent(event);
+        return event;
     }
             
     private void uncompressJavaScript(final String scriptSource, Map<String, Object> scriptEvent) {
@@ -238,32 +313,76 @@ public class HUQuery implements AutoCloseable {
         webClient.setJavaScriptEngine(new JavaScriptEngine(webClient) {
             
             @Override
-            public Object callFunction(HtmlPage page, net.sourceforge.htmlunit.corejs.javascript.Function function, Scriptable scope, Scriptable thisObject, Object[] args) {
-                String f = "";
-                
-                if (function instanceof BaseFunction) {
-                    BaseFunction bf = ((BaseFunction)function);
-                    f = ": " + bf.getFunctionName();
+            public void initialize(WebWindow webWindow) {
+                super.initialize(webWindow);
+                if (initializerScript != null && webWindow.getEnclosedPage() instanceof HtmlPage) {
+                    execute((HtmlPage)webWindow.getEnclosedPage(), initializerScript, "HUQuery Initializer Script", 1);
                 }
-                
-                logScriptEvent("JavaScript: callFunction" + f, page, new LinkedHashMap() {{
-                    put("function", function.toString());
-                    put("scope", scope.toString());
+            }
+            
+            private int functionCalls = 0;
+            private Map lastFunctionCallEvent = null;
+            private Map lastFunctionCall = null;
 
-                    if (thisObject instanceof HTMLElement) {
-                        HtmlElement n = ((HTMLElement)thisObject).getDomNodeOrNull();
-                        if (n != null) {
-                            if (n instanceof HtmlScript) {
-                                put("sourceCode", ((HtmlScript)n).getTextContent());
-                            }
-                            put("thisObjectHtml", n.asXml());
-                        }
+            @Override
+            public Object callFunction(HtmlPage page, net.sourceforge.htmlunit.corejs.javascript.Function function, Scriptable scope, Scriptable thisObject, Object[] args) {
+
+                if (functionCalls <= 1000) {
+                    String f = "";
+
+                    if (function instanceof BaseFunction) {
+                        BaseFunction bf = ((BaseFunction)function);
+                        f = ": " + bf.getFunctionName();
                     }
+                    
+                    if (functionCalls == 1000) {
+                        f += ": Too many function calls recorded, future calls will not be logged";
+                    }
+                    
+                    if (lastFunctionCallEvent != null && lastFunctionCall.get("function").equals(function.toString())) {
+                        Number seen = (Number) lastFunctionCallEvent.get("count");
 
-                    put("thisObject", thisObject.toString());
-                    put("args", args.toString());
-                }});
-                return super.callFunction(page, function, scope, thisObject, args);
+                        if (seen == null) {
+                            seen = 2;
+                        }
+                        else {
+                            seen = seen.intValue() + 1;
+                        }
+
+                        lastFunctionCallEvent.put("mark", "JavaScript ("+seen+"x): callFunction" + f);
+                        lastFunctionCallEvent.put("count", seen);
+                    }
+                    else {
+                        functionCalls++;
+
+                        lastFunctionCallEvent = logScriptEvent("JavaScript: callFunction" + f, page, lastFunctionCall = new ConcurrentHashMap() {{
+                            put("function", function.toString());
+                            put("scope", scope.toString());
+
+                            if (thisObject instanceof HTMLElement) {
+                                HtmlElement n = ((HTMLElement)thisObject).getDomNodeOrNull();
+                                if (n != null) {
+                                    if (n instanceof HtmlScript) {
+                                        put("sourceCode", ((HtmlScript)n).getTextContent());
+                                    }
+                                    put("thisObjectHtml", n.asXml());
+                                }
+                            }
+
+                            put("thisObject", thisObject.toString());
+                            put("args", args.toString());
+                        }});
+                    }
+                }
+
+                try {
+                    return super.callFunction(page, function, scope, thisObject, args);
+                } catch (StackOverflowError err) {
+                    throw new RuntimeException(err);
+                } catch (Error err) {
+                    logScriptEvent("JavaScript function caused error", page, Collections.singletonMap("error", err.toString()));
+                    throw err;
+                }
             }
 
             @Override
@@ -276,7 +395,15 @@ public class HUQuery implements AutoCloseable {
                         uncompressJavaScript(sourceCode, this);
                     }});
                 }
-                return super.execute(page, scope, script);
+                
+                try {
+                    return super.execute(page, scope, script);
+                } catch (StackOverflowError err) {
+                    throw new RuntimeException(err);
+                } catch (Error err) {
+                    logScriptEvent("Script caused error", page, Collections.singletonMap("error", err.toString()));
+                    throw err;
+                }
             }
 
             @Override
@@ -400,6 +527,11 @@ public class HUQuery implements AutoCloseable {
         return this;
     }
     
+    public HUQuery proxy(String host, int port, boolean socks) {
+        webClient.getOptions().setProxyConfig(new ProxyConfig(host, port, socks));
+        return this;
+    }
+
     public HUQuery noScript() {
         webClient.getOptions().setJavaScriptEnabled(false);
         return this;
@@ -498,8 +630,42 @@ public class HUQuery implements AutoCloseable {
         webClient.setHTMLParserListener(null);
     }
     
-    public void download(File f) {
-        downloaderHttpWebConnection.setDownloadAcceptor((di) -> f);
+    public void setDownloadAcceptor(Function<DownloadInfo, File> downloadAcceptor) {
+        downloaderHttpWebConnection.setDownloadAcceptor(downloadAcceptor);
     }
 
+    public void clearDownloadAcceptor() {
+        downloaderHttpWebConnection.setDownloadAcceptor(null);
+    }
+
+    public void downloadNextRequest(File f) {
+        if (f == null) {
+            downloaderHttpWebConnection.setDownloadAcceptor(null);
+            return;
+        }
+
+        downloaderHttpWebConnection.setDownloadAcceptor((di) -> {
+            if (di.response.getStatusLine().getStatusCode() != 200) {
+                return null;
+            }
+            downloaderHttpWebConnection.setDownloadAcceptor(null);
+            return f;
+        });
+    }
+
+    public List<HUQueryWindow<TopLevelWindow>> windows() {
+        List<TopLevelWindow> ww = webClient.getTopLevelWindows();
+        return new AbstractList<HUQueryWindow<TopLevelWindow>>() {
+            @Override
+            public HUQueryWindow<TopLevelWindow> get(int index) {
+                return new HUQueryWindow(HUQuery.this, ww.get(index));
+            }
+
+            @Override
+            public int size() {
+                return ww.size();
+            }
+        };
+    }
+    
 }

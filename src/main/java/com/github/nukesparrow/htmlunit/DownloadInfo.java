@@ -12,8 +12,8 @@ import org.apache.http.HttpResponse;
  */
 public class DownloadInfo {
     
-    protected WebRequest request;
-    protected HttpResponse response;
+    public WebRequest request;
+    public HttpResponse response;
 
     public DownloadInfo(WebRequest request, HttpResponse response) {
         this.request = request;
