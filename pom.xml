@@ -3,7 +3,8 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.github.nukesparrow</groupId>
     <artifactId>htmlunitutils</artifactId>
-    <version>2.25-20170311</version>
+    <name>HtmlUnitUtils</name>
+    <version>2.27-20171116</version>
     <packaging>jar</packaging>
     <dependencies>
         <dependency>
@@ -14,7 +15,7 @@
         <dependency>
             <groupId>net.sourceforge.htmlunit</groupId>
             <artifactId>htmlunit</artifactId>
-            <version>2.25</version>
+            <version>2.27</version>
         </dependency>
     </dependencies>
     <properties>
@@ -22,5 +23,4 @@
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
     </properties>
-    <name>HtmlUnitUtils</name>
 </project>

@@ -15,6 +15,7 @@
  */
 package com.github.nukesparrow.htmlunit;
 
+import com.gargoylesoftware.htmlunit.AppletConfirmHandler;
 import com.gargoylesoftware.htmlunit.ProxyConfig;
 import com.gargoylesoftware.htmlunit.ScriptException;
 import com.gargoylesoftware.htmlunit.SilentCssErrorHandler;
@@ -26,7 +27,9 @@ import com.gargoylesoftware.htmlunit.WebResponse;
 import com.gargoylesoftware.htmlunit.WebWindow;
 import com.gargoylesoftware.htmlunit.html.DomNode;
 import com.gargoylesoftware.htmlunit.html.HTMLParserListener;
+import com.gargoylesoftware.htmlunit.html.HtmlApplet;
 import com.gargoylesoftware.htmlunit.html.HtmlElement;
+import com.gargoylesoftware.htmlunit.html.HtmlObject;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import com.gargoylesoftware.htmlunit.html.HtmlScript;
 import com.gargoylesoftware.htmlunit.javascript.JavaScriptEngine;
@@ -124,9 +127,8 @@ public class HUQuery implements AutoCloseable {
 
         });
 
-        JavaScriptExecutor x = webClient.getJavaScriptEngine().getJavaScriptExecutor();
-        if (x != null) {
-            x.shutdown();
+        if (webClient.getJavaScriptEngine() != null) {
+            webClient.getJavaScriptEngine().shutdown();
         }
 
         webClient.setJavaScriptEngine(new JavaScriptEngine(webClient) {
@@ -306,10 +308,7 @@ public class HUQuery implements AutoCloseable {
     }
 
     private void setupDebug() {
-        JavaScriptExecutor x = webClient.getJavaScriptEngine().getJavaScriptExecutor();
-        if (x != null) {
-            x.shutdown();
-        }
+        webClient.getJavaScriptEngine().shutdown();
         webClient.setJavaScriptEngine(new JavaScriptEngine(webClient) {
             
             @Override
@@ -470,9 +469,18 @@ public class HUQuery implements AutoCloseable {
             }
         });
         webClient.setAlertHandler((page, message) -> dwc.logExtraDataEvent("Alert", message));
-        webClient.setAppletConfirmHandler((a) -> {
-            dwc.logExtraDataEvent("Applet", "Applet confirmation", "HTML", a.asXml());
-            return true;
+        webClient.setAppletConfirmHandler(new AppletConfirmHandler() {
+            @Override
+            public boolean confirm(HtmlApplet applet) {
+                dwc.logExtraDataEvent("Applet", "Applet confirmation", "HTML", applet.asXml());
+                return true;
+            }
+
+            @Override
+            public boolean confirm(HtmlObject applet) {
+                dwc.logExtraDataEvent("Applet", "Applet confirmation", "HTML", applet.asXml());
+                return true;
+            }
         });
         webClient.setConfirmHandler((page, message) -> {
             dwc.logExtraDataEvent("Confirmation", "Message: " + message);
@@ -624,7 +632,17 @@ public class HUQuery implements AutoCloseable {
         webClient.setIncorrectnessListener((m, o) -> {});
         webClient.setJavaScriptErrorListener(new SilentJavaScriptErrorListener());
         webClient.setAlertHandler((p, m) -> {});
-        webClient.setAppletConfirmHandler((a) -> true);
+        webClient.setAppletConfirmHandler(new AppletConfirmHandler() {
+            @Override
+            public boolean confirm(HtmlApplet applet) {
+                return true;
+            }
+
+            @Override
+            public boolean confirm(HtmlObject applet) {
+                return true;
+            }
+        });
         webClient.setConfirmHandler((p, m) -> true);
         webClient.setCssErrorHandler(new SilentCssErrorHandler());
         webClient.setHTMLParserListener(null);
